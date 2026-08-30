@@ -814,6 +814,8 @@ LaunchedEffect(calculationLocationVersion, refreshRequest) {
         onTestPanchang = onTestPanchang,
         onTestAllVoice = onTestAllVoice,
         onCancelTests = onCancelTests,
+        onUserSelected = onUserSelected,
+        onUserEdited = onUserEdited,
         liveLocation = liveLocation,
         isRefreshing = isRefreshing,
         lastRefreshMillis = lastRefreshMillis,
@@ -883,6 +885,10 @@ private fun ChandraSuryaHomeContent(
     onTestAllVoice: () -> Unit,
 
     onCancelTests: () -> Unit,
+
+    onUserSelected: (BirthProfile) -> Unit,
+
+    onUserEdited: (BirthProfile, BirthProfile) -> Unit,
 
     liveLocation: String,
 

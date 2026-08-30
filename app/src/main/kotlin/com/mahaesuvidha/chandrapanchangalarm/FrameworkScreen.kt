@@ -103,6 +103,19 @@ private fun FrameworkDetail(profile: BirthProfile, kind: FrameworkKind, onBack: 
     }
 }
 
+private fun frameworkPlanetEmoji(name: String): String = when (name) {
+    "सूर्य" -> "☀️"
+    "चंद्र" -> "🌙"
+    "मंगळ" -> "♂️"
+    "बुध" -> "☿️"
+    "गुरु" -> "♃"
+    "शुक्र" -> "♀️"
+    "शनि" -> "♄"
+    "राहू" -> "☊"
+    "केतू" -> "☋"
+    else -> "•"
+}
+
 @Composable
 private fun PlanetStudyCard(p: FrameworkPlanet, kind: FrameworkKind) {
     var open by remember { mutableStateOf(false) }
@@ -111,7 +124,7 @@ private fun PlanetStudyCard(p: FrameworkPlanet, kind: FrameworkKind) {
     val card = Color(0xFF10253A); val gold = Color(0xFFFFC83D); val white = Color(0xFFF5F7FA)
     Card(Modifier.fillMaxWidth().padding(vertical = 5.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = card)) {
         Column(Modifier.padding(14.dp)) {
-            Row(Modifier.fillMaxWidth().clickable { open = !open }, verticalAlignment = Alignment.CenterVertically) { Text("${planetEmoji(p.graha.marathi)} ${p.graha.marathi}", color = white, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f)); Text(if (open) "⌃" else "⌄", color = gold, fontSize = 22.sp) }
+            Row(Modifier.fillMaxWidth().clickable { open = !open }, verticalAlignment = Alignment.CenterVertically) { Text("${frameworkPlanetEmoji(p.graha.marathi)} ${p.graha.marathi}", color = white, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f)); Text(if (open) "⌃" else "⌄", color = gold, fontSize = 22.sp) }
             Text("आज: ${p.transit.house}वा भाव • ${p.transit.rashi} • ${p.transit.nakshatra}", color = gold, fontSize = 12.sp)
             if (open) {
                 Spacer(Modifier.height(8.dp))
