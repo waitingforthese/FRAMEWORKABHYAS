@@ -34,6 +34,18 @@ class AlarmReceiver : BroadcastReceiver() {
         val id = intent.getIntExtra("id", 1)
         val eventAt = intent.getLongExtra("eventAt", 0L)
 
+        // Master OFF is the final safety gate. Do not show notification, speak,
+        // or reschedule anything even if an already-delivered PendingIntent fires.
+        val prefs = AlarmPrefs(context)
+        if (!prefs.masterAlarm) {
+            runCatching { AaradhanaVoiceSession.stop() }
+            runCatching {
+                (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                    .cancel(id)
+            }
+            return
+        }
+
         val firedPrefs = context.getSharedPreferences(
             "life_alarm_fired_events", Context.MODE_PRIVATE
         )
@@ -42,7 +54,6 @@ class AlarmReceiver : BroadcastReceiver() {
         if (eventAt > 0L) firedPrefs.edit().putLong(firedKey, eventAt).apply()
 
         val isGuidanceNotification = id == 2 || id == 121 || id == 122 || id == 213
-        val prefs = AlarmPrefs(context)
 
         if (isGuidanceNotification) {
             showNakshatraGuidanceNotification(context, id, eventAt)

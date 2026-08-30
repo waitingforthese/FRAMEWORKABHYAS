@@ -104,6 +104,11 @@ class AlarmScheduler(
     fun scheduleAll() {
 
         val prefs = AlarmPrefs(context)
+        if (!prefs.masterAlarm) {
+            // Master OFF means absolutely no Life Alarm should remain scheduled.
+            cancelAll()
+            return
+        }
         val location = LocationPrefs(context)
 
         scheduleSpecialAaradhana()

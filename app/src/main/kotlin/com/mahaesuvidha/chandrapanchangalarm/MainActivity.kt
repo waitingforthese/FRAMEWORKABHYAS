@@ -1002,6 +1002,25 @@ private fun ChandraSuryaHomeContent(
         mutableStateOf(false)
     }
 
+    var masterAlarmOn by remember { mutableStateOf(alarmPrefs.masterAlarm) }
+
+    fun setMasterAlarm(enabled: Boolean) {
+        masterAlarmOn = enabled
+        alarmPrefs.masterAlarm = enabled
+        if (enabled) {
+            Thread {
+                runCatching { AlarmScheduler(context.applicationContext).scheduleAll() }
+                    .onFailure { t -> android.util.Log.e("LifeAlarm", "Failed to restore alarms after master ON", t) }
+            }.start()
+        } else {
+            runCatching { AlarmScheduler(context.applicationContext).cancelAll() }
+            runCatching {
+                (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancelAll()
+            }
+            runCatching { com.mahaesuvidha.chandrapanchangalarm.alarm.AaradhanaVoiceSession.stop() }
+        }
+    }
+
 
     if (
         showSettings
@@ -1055,7 +1074,27 @@ private fun ChandraSuryaHomeContent(
                 Text("Life Alarm", color = white, fontSize = 23.sp, fontWeight = FontWeight.Bold)
                 Text("LIVE • AUTO • ACCURATE", color = Color.LightGray, fontSize = 11.sp)
             }
-            Text("⚙️", fontSize = 25.sp, modifier = Modifier.clickable { showSettings = true })
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    "🔔",
+                    fontSize = 22.sp,
+                    modifier = Modifier.clickable { setMasterAlarm(!masterAlarmOn) }
+                )
+                Switch(
+                    checked = masterAlarmOn,
+                    onCheckedChange = { setMasterAlarm(it) }
+                )
+                Text(
+                    if (masterAlarmOn) "ON" else "OFF",
+                    color = if (masterAlarmOn) Color(0xFF66BB6A) else Color(0xFFFF7777),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text("⚙️", fontSize = 25.sp, modifier = Modifier.clickable { showSettings = true })
+            }
         }
 
         Spacer(Modifier.height(6.dp))
