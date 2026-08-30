@@ -20,7 +20,13 @@ object BirthChartCalculator {
         DateTimeFormatter.ofPattern("d/M/yyyy HH:mm")
     )
 
-    data class PlanetPosition(val rashiIndex: Int, val house: Int)
+    data class PlanetPosition(
+        val rashiIndex: Int,
+        val house: Int,
+        val longitude: Double = 0.0,
+        val nakshatraIndex: Int = 0,
+        val pada: Int = 1
+    )
 
     fun parseBirthTime(date: String, time: String): LocalDateTime? {
         val normalized = time.trim().uppercase()
@@ -68,12 +74,22 @@ object BirthChartCalculator {
         )
         val result = linkedMapOf<Graha, PlanetPosition>()
         bodies.forEach { (graha, body) ->
-            val idx = longitude(swe, jd, body).let(::rashiIndex)
-            result[graha] = PlanetPosition(idx, wholeSignHouse(ascRashi, idx))
+            val lon = longitude(swe, jd, body)
+            val idx = rashiIndex(lon)
+            val nakIndex = (lon / (360.0 / 27.0)).toInt().coerceIn(0, 26)
+            val pada = (((lon % (360.0 / 27.0)) / (360.0 / 108.0)).toInt() + 1).coerceIn(1, 4)
+            result[graha] = PlanetPosition(idx, wholeSignHouse(ascRashi, idx), lon, nakIndex, pada)
         }
+        val ketuRashi = ((result[Graha.RAHU]?.rashiIndex ?: 0) + 6) % 12
+        val ketuLon = normalize((result[Graha.RAHU]?.longitude ?: 0.0) + 180.0)
+        val ketuNak = (ketuLon / (360.0 / 27.0)).toInt().coerceIn(0, 26)
+        val ketuPada = (((ketuLon % (360.0 / 27.0)) / (360.0 / 108.0)).toInt() + 1).coerceIn(1, 4)
         result[Graha.KETU] = PlanetPosition(
-            ((result[Graha.RAHU]?.rashiIndex ?: 0) + 6) % 12,
-            wholeSignHouse(ascRashi, ((result[Graha.RAHU]?.rashiIndex ?: 0) + 6) % 12)
+            ketuRashi,
+            wholeSignHouse(ascRashi, ketuRashi),
+            ketuLon,
+            ketuNak,
+            ketuPada
         )
         return result
     }

@@ -2,6 +2,7 @@ package com.mahaesuvidha.chandrapanchangalarm
 
 import android.location.Geocoder
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlin.math.floor
 
 private enum class FrameworkKind(val title: String, val icon: String, val subtitle: String) {
     MEDICAL("Medical Astrology", "🩺", "आरोग्याशी संबंधित पारंपरिक ज्योतिषीय संकेतांचा अभ्यास"),
@@ -31,13 +33,22 @@ private enum class FrameworkKind(val title: String, val icon: String, val subtit
     VASTU("Vastushastra", "🏠", "दिशा, वास्तु घटक व कुंडलीशी तुलनात्मक अभ्यास")
 }
 
+private data class StudySection(val title: String, val points: List<Pair<String, String>>)
+
 private data class FrameworkDay(
     val date: LocalDate,
     val rashi: String,
     val house: Int,
     val nakshatra: String,
     val pada: Int,
+    val nakshatraLord: String,
+    val navamshaRashi: String,
+    val navamshaLord: String,
+    val rashiLord: String,
+    val degrees: String,
     val aspects: String,
+    val aspectHouses: List<Int>,
+    val aspectPlanets: String,
     val topic: String,
     val change: String
 )
@@ -46,9 +57,16 @@ private data class FrameworkPlanet(
     val graha: Graha,
     val birthHouse: Int,
     val birthRashi: String,
+    val birthNakshatra: String,
+    val birthPada: Int,
+    val birthNakshatraLord: String,
+    val birthNavamshaRashi: String,
+    val birthNavamshaLord: String,
+    val birthRashiLord: String,
+    val birthDegrees: String,
     val transit: FrameworkDay,
     val subject: String,
-    val houseMeaning: String,
+    val sections: List<StudySection>,
     val reasoning: String,
     val prediction: String,
     val comparison: List<FrameworkDay>
@@ -58,31 +76,47 @@ private data class FrameworkPlanet(
 fun FrameworkScreen(profile: BirthProfile, onBack: () -> Unit) {
     var selected by remember { mutableStateOf<FrameworkKind?>(null) }
     BackHandler { if (selected != null) selected = null else onBack() }
-    if (selected == null) {
-        FrameworkHome(onBack = onBack, onSelect = { selected = it })
-    } else {
-        FrameworkDetail(profile, selected!!, onBack = { selected = null })
-    }
+    if (selected == null) FrameworkHome(onBack, { selected = it })
+    else FrameworkDetail(profile, selected!!, onBack = { selected = null })
 }
 
 @Composable
 private fun FrameworkHome(onBack: () -> Unit, onSelect: (FrameworkKind) -> Unit) {
-    Column(Modifier.fillMaxSize().background(Color(0xFF07111F)).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(12.dp)) {
+    Column(
+        Modifier.fillMaxSize().background(Color(0xFF07111F)).statusBarsPadding().navigationBarsPadding()
+            .verticalScroll(rememberScrollState()).padding(12.dp)
+    ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("← मागे", color = Color.White) }
-            Text("🧠 Framework", color = Color(0xFFFFC83D), fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text("🧠 Framework", color = Color(0xFFFFC83D), fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             Spacer(Modifier.width(55.dp))
         }
         Spacer(Modifier.height(8.dp))
-        Text("ग्रहस्थिती → कारण → परिणाम → तुलना → अभ्यास", color = Color.LightGray, fontSize = 13.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        Text("ग्रहस्थिती → प्रश्न → कारण → परिणाम → तुलना → अभ्यास", color = Color.LightGray,
+            fontSize = 13.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         Spacer(Modifier.height(12.dp))
         FrameworkKind.entries.forEach { kind ->
-            Card(Modifier.fillMaxWidth().padding(vertical = 5.dp).clickable { onSelect(kind) }, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF10253A)), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFC83D).copy(alpha = .35f))) {
+            Card(
+                Modifier.fillMaxWidth().padding(vertical = 5.dp).clickable { onSelect(kind) },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF10253A)),
+                border = BorderStroke(1.dp, Color(0xFFFFC83D).copy(alpha = .35f))
+            ) {
                 Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(kind.icon, fontSize = 30.sp); Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text(kind.title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold); Text(kind.subtitle, color = Color.LightGray, fontSize = 11.sp) }; Text("›", color = Color(0xFFFFC83D), fontSize = 28.sp)
+                    Text(kind.icon, fontSize = 30.sp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(kind.title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(kind.subtitle, color = Color.LightGray, fontSize = 11.sp)
+                    }
+                    Text("›", color = Color(0xFFFFC83D), fontSize = 28.sp)
                 }
             }
         }
+        Spacer(Modifier.height(10.dp))
+        NoteCard("महत्त्वाचा अभ्यास नियम",
+            "भाकीत शेवटी येईल. प्रत्येक आधीच्या घटकासाठी प्रश्न, उपलब्ध गणना आणि त्यातून निघणारा अर्थ आधी वाचता येईल.")
     }
 }
 
@@ -90,114 +124,444 @@ private fun FrameworkHome(onBack: () -> Unit, onSelect: (FrameworkKind) -> Unit)
 private fun FrameworkDetail(profile: BirthProfile, kind: FrameworkKind, onBack: () -> Unit) {
     val context = LocalContext.current
     var coords by remember(profile.birthPlace) { mutableStateOf<Pair<Double, Double>?>(null) }
-    LaunchedEffect(profile.birthPlace) { coords = withContext(Dispatchers.IO) { runCatching { if (!Geocoder.isPresent()) null else Geocoder(context, java.util.Locale.getDefault()).getFromLocationName(profile.birthPlace, 1)?.firstOrNull()?.let { it.latitude to it.longitude } }.getOrNull() } }
-    val data = remember(profile, coords, kind) { if (coords == null) emptyList() else FrameworkCalculator.calculate(profile, coords!!.first, coords!!.second, kind) }
-    Column(Modifier.fillMaxSize().background(Color(0xFF07111F)).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(12.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { TextButton(onClick = onBack) { Text("← मागे", color = Color.White) }; Text("${kind.icon} ${kind.title}", color = Color(0xFFFFC83D), fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center); Spacer(Modifier.width(55.dp)) }
+    LaunchedEffect(profile.birthPlace) {
+        coords = withContext(Dispatchers.IO) {
+            runCatching {
+                if (!Geocoder.isPresent()) null else Geocoder(context, java.util.Locale.getDefault())
+                    .getFromLocationName(profile.birthPlace, 1)?.firstOrNull()?.let { it.latitude to it.longitude }
+            }.getOrNull()
+        }
+    }
+    val data = remember(profile, coords, kind) {
+        if (coords == null) emptyList() else FrameworkCalculator.calculate(profile, coords!!.first, coords!!.second, kind)
+    }
+    Column(
+        Modifier.fillMaxSize().background(Color(0xFF07111F)).statusBarsPadding().navigationBarsPadding()
+            .verticalScroll(rememberScrollState()).padding(12.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onBack) { Text("← मागे", color = Color.White) }
+            Text("${kind.icon} ${kind.title}", color = Color(0xFFFFC83D), fontSize = 19.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            Spacer(Modifier.width(55.dp))
+        }
         Spacer(Modifier.height(6.dp))
-        Text("जन्मकुंडलीतील भाव = जन्मलग्नापासून  •  गोचर भाव = जन्म चंद्रराशीपासून", color = Color.LightGray, fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text("जन्मकुंडलीतील भाव = जन्मलग्नापासून  •  गोचर भाव = जन्म चंद्रराशीपासून",
+            color = Color.LightGray, fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(5.dp))
+        NoteCard("अभ्यासाची पद्धत",
+            "प्रत्येक ग्रहासाठी आधी प्रश्न वाचायचे, नंतर त्या प्रश्नाचे सध्याचे उत्तर पाहायचे. शेवटी सर्व संकेत जोडून संयुक्त Logic आणि भाकीत वाचायचे.")
         if (coords == null) Text("जन्मठिकाणाचे coordinates शोधत आहे...", color = Color.Gray, modifier = Modifier.padding(12.dp))
         if (kind == FrameworkKind.VASTU) VastuInfo()
-        data.forEach { planet -> PlanetStudyCard(planet, kind) }
+        data.forEach { planet -> PlanetStudyCard(planet) }
         if (data.isEmpty() && coords != null) Text("विश्लेषणासाठी जन्ममाहिती तपासा.", color = Color.LightGray, modifier = Modifier.padding(16.dp))
     }
 }
 
 private fun frameworkPlanetEmoji(name: String): String = when (name) {
-    "सूर्य" -> "☀️"
-    "चंद्र" -> "🌙"
-    "मंगळ" -> "♂️"
-    "बुध" -> "☿️"
-    "गुरु" -> "♃"
-    "शुक्र" -> "♀️"
-    "शनि" -> "♄"
-    "राहू" -> "☊"
-    "केतू" -> "☋"
-    else -> "•"
+    "सूर्य" -> "☀️"; "चंद्र" -> "🌙"; "मंगळ" -> "♂️"; "बुध" -> "☿️"; "गुरु" -> "♃"; "शुक्र" -> "♀️"; "शनि" -> "♄"; "राहू" -> "☊"; "केतू" -> "☋"; else -> "•"
 }
 
 @Composable
-private fun PlanetStudyCard(p: FrameworkPlanet, kind: FrameworkKind) {
+private fun PlanetStudyCard(p: FrameworkPlanet) {
     var open by remember { mutableStateOf(false) }
-    var compare by remember { mutableStateOf(false) }
-    var logic by remember { mutableStateOf(false) }
-    val card = Color(0xFF10253A); val gold = Color(0xFFFFC83D); val white = Color(0xFFF5F7FA)
-    Card(Modifier.fillMaxWidth().padding(vertical = 5.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = card)) {
+    var comparison by remember { mutableStateOf(false) }
+    val gold = Color(0xFFFFC83D)
+    Card(Modifier.fillMaxWidth().padding(vertical = 5.dp), shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF10253A))) {
         Column(Modifier.padding(14.dp)) {
-            Row(Modifier.fillMaxWidth().clickable { open = !open }, verticalAlignment = Alignment.CenterVertically) { Text("${frameworkPlanetEmoji(p.graha.marathi)} ${p.graha.marathi}", color = white, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f)); Text(if (open) "⌃" else "⌄", color = gold, fontSize = 22.sp) }
-            Text("आज: ${p.transit.house}वा भाव • ${p.transit.rashi} • ${p.transit.nakshatra}", color = gold, fontSize = 12.sp)
+            Row(Modifier.fillMaxWidth().clickable { open = !open }, verticalAlignment = Alignment.CenterVertically) {
+                Text("${frameworkPlanetEmoji(p.graha.marathi)} ${p.graha.marathi}", color = Color.White, fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(if (open) "⌃" else "⌄", color = gold, fontSize = 22.sp)
+            }
+            Text("आज: ${p.transit.house}वा भाव • ${p.transit.rashi} • ${p.transit.nakshatra} • चरण ${p.transit.pada}", color = gold, fontSize = 12.sp)
             if (open) {
                 Spacer(Modifier.height(8.dp))
-                StudyLabel("गोचर ग्रह कोणता?", p.graha.marathi)
-                StudyLabel("संबंधित विषय", p.subject)
-                StudyLabel("कोणत्या भावातून गोचर करतो?", "${p.transit.house}वा भाव — ${p.houseMeaning}")
-                StudyLabel("गोचर राशी", p.transit.rashi)
-                StudyLabel("जन्मकुंडलीतील ग्रह", "${p.birthHouse}वा भाव — ${p.birthRashi}")
-                StudyLabel("दृष्टी", p.transit.aspects)
-                StudyLabel("नक्षत्र / चरण", "${p.transit.nakshatra} / ${p.transit.pada}")
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { logic = !logic }, modifier = Modifier.weight(1f)) { Text("🔍 भाकीत कसे?", fontSize = 11.sp) }
-                    OutlinedButton(onClick = { compare = !compare }, modifier = Modifier.weight(1f)) { Text("📊 Comparison", fontSize = 11.sp) }
+                StudySectionCard("① गोचर ग्रह कोणता? — ग्रहाचा पूर्ण विचार", p.sections[0])
+                StudySectionCard("② कोणत्या भावातून गोचर करतो? — भावाचा सूक्ष्म विचार", p.sections[1])
+                StudySectionCard("③ गोचर राशी — राशीचा सूक्ष्म विचार", p.sections[2])
+                StudySectionCard("④ जन्मकुंडलीतील ग्रह — जन्मभूमिका", p.sections[3])
+                StudySectionCard("⑤ दृष्टी — दृष्टीतील भाव व ग्रह", p.sections[4])
+                StudySectionCard("⑥ नक्षत्र — नक्षत्र स्वामीपर्यंत विचार", p.sections[5])
+                StudySectionCard("⑦ चरण — नवांशासह सूक्ष्म विचार", p.sections[6])
+                StudySectionCard("⑧ जोडणी — जन्म + गोचर + इतर संकेत", p.sections[7])
+                Spacer(Modifier.height(6.dp))
+                OutlinedButton(onClick = { comparison = !comparison }, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (comparison) "⌃ Comparison बंद करा" else "📊 Comparison — मागील 2 दिवस + आज + पुढील 2 दिवस")
                 }
-                if (logic) {
-                    Spacer(Modifier.height(8.dp)); Text("🧠 हे भाकीत कसे तयार झाले?", color = gold, fontWeight = FontWeight.Bold)
-                    Text(p.reasoning, color = white, fontSize = 13.sp, modifier = Modifier.padding(top = 5.dp))
-                    Spacer(Modifier.height(6.dp)); Text("🔮 भाकीत", color = gold, fontWeight = FontWeight.Bold); Text(p.prediction, color = white, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
-                }
-                if (compare) ComparisonTable(p.comparison)
+                if (comparison) ComparisonTable(p.comparison, p.birthHouse, p.birthRashi)
             }
         }
     }
 }
 
-@Composable private fun StudyLabel(label: String, value: String) { Column(Modifier.padding(vertical = 3.dp)) { Text(label, color = Color(0xFFFFC83D), fontSize = 11.sp, fontWeight = FontWeight.Bold); Text(value, color = Color(0xFFF5F7FA), fontSize = 13.sp) } }
-
-@Composable private fun ComparisonTable(rows: List<FrameworkDay>) {
-    Spacer(Modifier.height(10.dp)); Text("📊 मागील 2 दिवस • आज • पुढील 2 दिवस", color = Color(0xFFFFC83D), fontWeight = FontWeight.Bold)
-    rows.forEachIndexed { i, r ->
-        val label = when (i) { 0 -> "-2"; 1 -> "-1"; 2 -> "आज"; 3 -> "+1"; else -> "+2" }
-        Card(Modifier.fillMaxWidth().padding(vertical = 2.dp), colors = CardDefaults.cardColors(containerColor = if (i == 2) Color(0xFF1A344D) else Color(0xFF0C1D2D))) {
-            Column(Modifier.padding(8.dp)) { Text("$label  •  ${r.date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp); Text("${r.house}वा भाव • ${r.rashi} • ${r.nakshatra} (चरण ${r.pada})", color = Color(0xFFF5F7FA), fontSize = 11.sp); Text("दृष्टी: ${r.aspects}", color = Color.LightGray, fontSize = 10.sp); Text("विषय: ${r.topic}", color = Color.LightGray, fontSize = 10.sp); Text("बदल: ${r.change}", color = Color(0xFFFFC83D), fontSize = 10.sp) }
+@Composable
+private fun StudySectionCard(title: String, section: StudySection) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(Modifier.fillMaxWidth().padding(vertical = 3.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF0B2038)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = .06f))) {
+        Column(Modifier.padding(10.dp)) {
+            Row(Modifier.fillMaxWidth().clickable { expanded = !expanded }, verticalAlignment = Alignment.CenterVertically) {
+                Text(title, color = Color(0xFFFFC83D), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(if (expanded) "⌃" else "⌄", color = Color.LightGray)
+            }
+            if (expanded) {
+                Spacer(Modifier.height(5.dp))
+                section.points.forEach { (question, answer) ->
+                    Text("❓ $question", color = Color(0xFFFFC83D), fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 5.dp))
+                    Text("→ $answer", color = Color(0xFFF5F7FA), fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+                }
+            }
         }
     }
 }
 
-@Composable private fun VastuInfo() { Card(Modifier.fillMaxWidth().padding(bottom = 8.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF10253A))) { Column(Modifier.padding(14.dp)) { Text("🏠 स्थिर वास्तु अभ्यास", color = Color(0xFFFFC83D), fontWeight = FontWeight.Bold); Text("दिशा, पंचमहाभूत, वास्तुपुरुष मंडल, ईशान्य, आग्नेय, नैऋत्य, वायव्य, ब्रह्मस्थान, मुख्य प्रवेश, kitchen, bedroom, पूजा/ध्यान, office आणि धनस्थान यांचा स्वतंत्र अभ्यास करा. वास्तुचे स्थिर नियम आणि दैनिक ग्रहगोचर एकच गोष्ट म्हणून दाखवू नयेत.", color = Color.White, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) } } }
+@Composable
+private fun ComparisonTable(rows: List<FrameworkDay>, birthHouse: Int, birthRashi: String) {
+    Spacer(Modifier.height(8.dp))
+    Text("📊 5-दिवसीय सूक्ष्म तुलना", color = Color(0xFFFFC83D), fontWeight = FontWeight.Bold)
+    Text("जन्मग्रह: ${birthHouse}वा भाव — $birthRashi | भाव reference: जन्मकुंडली = लग्नापासून; गोचर = चंद्रापासून",
+        color = Color.LightGray, fontSize = 10.sp, modifier = Modifier.padding(vertical = 4.dp))
+    rows.forEachIndexed { i, r ->
+        val label = when (i) { 0 -> "-2"; 1 -> "-1"; 2 -> "आज"; 3 -> "+1"; else -> "+2" }
+        Card(Modifier.fillMaxWidth().padding(vertical = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = if (i == 2) Color(0xFF1A344D) else Color(0xFF0C1D2D))) {
+            Column(Modifier.padding(9.dp)) {
+                Text("$label • ${r.date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("रास: ${r.rashi} • ${r.degrees}° | भाव: ${r.house}वा | नक्षत्र: ${r.nakshatra} | चरण: ${r.pada}", color = Color.White, fontSize = 11.sp)
+                Text("राशी स्वामी: ${r.rashiLord} | नक्षत्र स्वामी: ${r.nakshatraLord} | नवांश: ${r.navamshaRashi} (${r.navamshaLord})", color = Color.LightGray, fontSize = 10.sp)
+                Text("दृष्टी: ${r.aspects} | दृष्टीतील जन्मग्रह: ${r.aspectPlanets}", color = Color.LightGray, fontSize = 10.sp)
+                Text("सक्रिय विषय: ${r.topic}", color = Color.LightGray, fontSize = 10.sp)
+                Text("बदल: ${r.change}", color = Color(0xFFFFC83D), fontSize = 10.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun VastuInfo() {
+    Card(Modifier.fillMaxWidth().padding(bottom = 8.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF10253A))) {
+        Column(Modifier.padding(14.dp)) {
+            Text("🏠 वास्तु अभ्यास — प्रश्नावली", color = Color(0xFFFFC83D), fontWeight = FontWeight.Bold)
+            listOf(
+                "कोणती दिशा? → उत्तर, दक्षिण, पूर्व, पश्चिम, ईशान्य, आग्नेय, नैऋत्य, वायव्य.",
+                "त्या दिशेचा पारंपरिक वास्तु अर्थ काय?",
+                "पंचमहाभूताशी संबंध काय?",
+                "वास्तुपुरुष मंडलातील स्थान काय?",
+                "मुख्य प्रवेश, kitchen, bedroom, पूजा, office, धनस्थान कुठे आहे?",
+                "ब्रह्मस्थान मोकळे/संतुलित आहे का?",
+                "कुंडलीतील ग्रहसंकेताशी वास्तु घटकाचा तुलनात्मक संबंध काय?",
+                "स्थिर वास्तु नियम आणि दैनिक गोचर वेगळे कसे ठेवायचे?"
+            ).forEach { Text("❓ $it", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(top = 5.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun NoteCard(title: String, text: String) {
+    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF0C1D2D))) {
+        Column(Modifier.padding(11.dp)) {
+            Text(title, color = Color(0xFFFFC83D), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(text, color = Color.LightGray, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+        }
+    }
+}
 
 private object FrameworkCalculator {
-    private val bodies = listOf(Graha.SURYA to swisseph.SweConst.SE_SUN, Graha.CHANDRA to swisseph.SweConst.SE_MOON, Graha.MANGAL to swisseph.SweConst.SE_MARS, Graha.BUDH to swisseph.SweConst.SE_MERCURY, Graha.GURU to swisseph.SweConst.SE_JUPITER, Graha.SHUKRA to swisseph.SweConst.SE_VENUS, Graha.SHANI to swisseph.SweConst.SE_SATURN, Graha.RAHU to swisseph.SweConst.SE_TRUE_NODE)
+    private val bodies = listOf(
+        Graha.SURYA to swisseph.SweConst.SE_SUN, Graha.CHANDRA to swisseph.SweConst.SE_MOON,
+        Graha.MANGAL to swisseph.SweConst.SE_MARS, Graha.BUDH to swisseph.SweConst.SE_MERCURY,
+        Graha.GURU to swisseph.SweConst.SE_JUPITER, Graha.SHUKRA to swisseph.SweConst.SE_VENUS,
+        Graha.SHANI to swisseph.SweConst.SE_SATURN, Graha.RAHU to swisseph.SweConst.SE_TRUE_NODE
+    )
+
     fun calculate(profile: BirthProfile, lat: Double, lon: Double, kind: FrameworkKind): List<FrameworkPlanet> {
         val birth = BirthChartCalculator.calculate(profile.birthDate, profile.birthTime, lat, lon)
         val moonIndex = Rashi.entries.indexOfFirst { it.marathi == profile.birthMoonRashi }.let { if (it >= 0) it else 0 }
         val today = LocalDate.now()
         val allBodies = bodies + (Graha.KETU to -1)
+        val birthByHouse = birth.entries.groupBy { it.value.house }.mapValues { it.value.map { e -> e.key.marathi } }
         return allBodies.map { (g, body) ->
             val bp = birth[g] ?: BirthChartCalculator.PlanetPosition(0, 1)
-            val days = (-2..2).map { offset -> day(profile, lat, lon, moonIndex, g, body, today.plusDays(offset.toLong()), offset, kind) }
+            val birthRashi = Rashi.entries[bp.rashiIndex]
+            val birthNak = Nakshatra.entries[bp.nakshatraIndex]
+            val birthInfo = JyotishMaster.getInfo(birthRashi, birthNak, bp.pada)
+            val days = (-2..2).map { offset ->
+                day(moonIndex, g, body, today.plusDays(offset.toLong()), offset, kind, birthByHouse)
+            }
             val now = days[2]
             val subject = subjects[g] ?: "ग्रहाशी संबंधित पारंपरिक विषय"
-            FrameworkPlanet(g, bp.house, Rashi.entries[bp.rashiIndex].marathi, now, subject, houseMeaning(now.house, kind), reasoning(g, bp.house, Rashi.entries[bp.rashiIndex].marathi, now, kind), prediction(g, now, kind), days)
+            val sections = buildSections(g, bp, birthRashi, birthNak, birthInfo, now, kind, birthByHouse)
+            FrameworkPlanet(
+                g, bp.house, birthRashi.marathi, birthNak.marathi, bp.pada, birthInfo.nakshatraLord,
+                birthInfo.navamshaRashi, birthInfo.navamshaLord, birthInfo.rashiLord, degreeText(bp.longitude),
+                now, subject, sections,
+                buildReasoning(g, bp, birthRashi, birthNak, birthInfo, now, kind, birthByHouse),
+                buildPrediction(g, now, bp, kind), days
+            )
         }
     }
-    private fun day(profile: BirthProfile, lat: Double, lon: Double, moonIndex: Int, g: Graha, body: Int, date: LocalDate, offset: Int, kind: FrameworkKind): FrameworkDay {
+
+    private fun day(moonIndex: Int, g: Graha, body: Int, date: LocalDate, offset: Int, kind: FrameworkKind,
+                    birthByHouse: Map<Int, List<String>>): FrameworkDay {
         val jd = julianDay(date, 12.0)
         val swe = swisseph.SwissEph().apply { swe_set_sid_mode(swisseph.SweConst.SE_SIDM_LAHIRI, 0.0, 0.0) }
-        val rawLongitude = if (body == -1) (longitude(swe, jd, swisseph.SweConst.SE_TRUE_NODE) + 180.0) % 360.0 else longitude(swe, jd, body)
-        val idx = rashiIndex(rawLongitude); val house = (idx - moonIndex + 12) % 12 + 1
-        val nak = Nakshatra.entries[(rawLongitude / (360.0 / 27.0)).toInt().coerceIn(0, 26)]
-        val pada = (((rawLongitude % (360.0 / 27.0)) / (360.0 / 108.0)).toInt() + 1).coerceIn(1,4)
-        val aspects = aspectText(g, house)
+        val rawLongitude = if (body == -1) (longitude(swe, jd, swisseph.SweConst.SE_TRUE_NODE) + 180.0) % 360.0
+        else longitude(swe, jd, body)
+        val idx = rashiIndex(rawLongitude)
+        val house = (idx - moonIndex + 12) % 12 + 1
+        val nakIndex = (rawLongitude / (360.0 / 27.0)).toInt().coerceIn(0, 26)
+        val nak = Nakshatra.entries[nakIndex]
+        val pada = (((rawLongitude % (360.0 / 27.0)) / (360.0 / 108.0)).toInt() + 1).coerceIn(1, 4)
+        val info = JyotishMaster.getInfo(Rashi.entries[idx], nak, pada)
+        val aspectHouses = aspectHouses(g, house)
+        val aspectText = if (aspectHouses.isEmpty()) "—" else aspectHouses.joinToString(", ") { "${it}वा भाव" }
+        val aspectPlanets = aspectHouses.flatMap { birthByHouse[it].orEmpty() }.distinct().joinToString(", ").ifBlank { "त्या भावात जन्मग्रह नाही" }
         val topic = houseMeaning(house, kind)
-        val change = if (offset == 0) "आजची आधारस्थिती" else "आजच्या तुलनेत ${if (house == ((idx - moonIndex + 12) % 12 + 1)) "भावस्थिती कायम" else "भाव बदल"}"
-        return FrameworkDay(date, Rashi.entries[idx].marathi, house, nak.marathi, pada, aspects, topic, change)
+        val change = when (offset) {
+            0 -> "आजची आधारस्थिती"
+            else -> {
+                val prev = previousDay(moonIndex, g, body, date.minusDays(1), kind, birthByHouse)
+                buildChange(prev, house, idx, nak.marathi, pada)
+            }
+        }
+        return FrameworkDay(date, Rashi.entries[idx].marathi, house, nak.marathi, pada, info.nakshatraLord,
+            info.navamshaRashi, info.navamshaLord, info.rashiLord, degreeText(rawLongitude), aspectText,
+            aspectHouses, aspectPlanets, topic, change)
     }
+
+    private fun previousDay(moonIndex: Int, g: Graha, body: Int, date: LocalDate, kind: FrameworkKind,
+                            birthByHouse: Map<Int, List<String>>): FrameworkDay = day(moonIndex, g, body, date, 0, kind, birthByHouse)
+
+    private fun buildChange(prev: FrameworkDay, house: Int, idx: Int, nak: String, pada: Int): String {
+        val changes = mutableListOf<String>()
+        if (prev.house != house) changes += "भाव ${prev.house}वा → ${house}वा"
+        if (prev.rashi != Rashi.entries[idx].marathi) changes += "रास ${prev.rashi} → ${Rashi.entries[idx].marathi}"
+        if (prev.nakshatra != nak) changes += "नक्षत्र ${prev.nakshatra} → $nak"
+        if (prev.pada != pada) changes += "चरण ${prev.pada} → $pada"
+        return if (changes.isEmpty()) "मुख्य स्थिती कायम; सूक्ष्म बदल तपासा." else changes.joinToString(" • ")
+    }
+
+    private fun buildSections(g: Graha, bp: BirthChartCalculator.PlanetPosition, birthRashi: Rashi,
+                              birthNak: Nakshatra, birthInfo: JyotishInfo, now: FrameworkDay, kind: FrameworkKind,
+                              birthByHouse: Map<Int, List<String>>): List<StudySection> {
+        val subject = subjects[g] ?: "संबंधित ग्रहविषय"
+        val aspects = aspectHouses(g, now.house)
+        val aspectBirth = aspects.flatMap { birthByHouse[it].orEmpty() }.distinct().joinToString(", ").ifBlank { "दृष्टीच्या भावात जन्मग्रह नाही" }
+        return listOf(
+            StudySection("ग्रह", listOf(
+                "हा ग्रह कोणता?" to "${g.marathi}",
+                "ग्रहाचे सर्व प्रमुख कारकत्व काय?" to subject,
+                "हा ग्रह कोणत्या व्यक्ती/घटनांचे प्रतिनिधित्व करतो?" to planetPeopleEvents(g),
+                "सकारात्मक बाजू कोणती?" to planetPositive(g),
+                "सावध बाजू कोणती?" to planetCaution(g),
+                "या ग्रहाचे कारकत्व गोचर भावाशी कसे मिसळायचे?" to "आधी ग्रहाचे कारकत्व समजा; मग ते सध्याच्या गोचर भावाच्या विषयावर लावा."
+            )),
+            StudySection("गोचर भाव", listOf(
+                "गोचर भाव कोणता?" to "${now.house}वा भाव — reference: जन्म चंद्रराशीपासून",
+                "या भावाचे प्रमुख विषय कोणते?" to houseFullMeaning(now.house),
+                "या भावाचा आर्थिक/व्यवसाय/मानसिक अर्थ काय?" to houseDomainMeaning(now.house, kind),
+                "ग्रह + भाव यांचा प्राथमिक अर्थ काय?" to "${g.marathi} चे कारकत्व + ${now.house}व्या भावाचे विषय = पहिला interpretation.",
+                "या भावातून कोणत्या घटना/क्षेत्राकडे लक्ष द्यायचे?" to now.topic
+            )),
+            StudySection("गोचर रास", listOf(
+                "गोचर रास कोणती?" to now.rashi,
+                "राशीचा स्वामी कोण?" to now.rashiLord,
+                "राशीचे तत्त्व/स्वभाव काय?" to rashiNature(now.rashi),
+                "ग्रह आणि राशीचे नाते काय?" to planetRashiRelation(g, now.rashi),
+                "ग्रह स्वगृही/उच्च/नीच/मित्र/शत्रू आहे का?" to dignity(g, now.rashi),
+                "राशीमुळे ग्रहाच्या फलितात काय बदलतो?" to "राशी ग्रहाच्या नैसर्गिक कारकत्वाला दिशा व अभिव्यक्तीचे वातावरण देते."
+            )),
+            StudySection("जन्मकुंडलीतील ग्रह", listOf(
+                "जन्मकुंडलीतील ग्रह कोणत्या भावात आहे?" to "${bp.house}वा भाव — भाव reference: जन्मलग्नापासून",
+                "जन्मराशी कोणती?" to birthRashi.marathi,
+                "जन्मग्रह कोणते मूलभूत जीवनक्षेत्र जोडतो?" to subject,
+                "जन्मग्रहाचा नक्षत्र/चरण कोणता?" to "${birthNak.marathi} / ${bp.pada} चरण",
+                "जन्म नक्षत्र स्वामी कोण?" to birthInfo.nakshatraLord,
+                "जन्म नवांश कोणता?" to "${birthInfo.navamshaRashi} — स्वामी ${birthInfo.navamshaLord}",
+                "जन्मग्रह + आजचा गोचर कसा जोडायचा?" to "जन्मग्रहाची मूलभूत भूमिका स्थिर ठेवून सध्याच्या गोचर भाव/राशीमुळे ती कोणत्या क्षेत्रात सक्रिय झाली ते पाहायचे."
+            )),
+            StudySection("दृष्टी", listOf(
+                "गोचर ग्रहाची दृष्टी कोणती?" to now.aspects,
+                "दृष्टी कोणत्या भावांवर पडते?" to aspects.joinToString(", ") { "${it}वा भाव" }.ifBlank { "—" },
+                "त्या भावांचे विषय काय?" to aspects.joinToString(" • ") { "${it}वा: ${houseFullMeaning(it)}" },
+                "दृष्टीतील जन्मग्रह कोणते?" to aspectBirth,
+                "दृष्टीतील ग्रहांचे कारकत्व काय विचारायचे?" to "दृष्टी पडलेल्या प्रत्येक जन्मग्रहाचे कारकत्व + त्याचा भाव + त्या भावाचा स्वामी वेगळा विचारायचा.",
+                "दृष्टीचा अंतिम उपयोग काय?" to "मुख्य गोचर भावाबाहेरील अतिरिक्त सक्रिय जीवनक्षेत्र शोधणे."
+            )),
+            StudySection("नक्षत्र", listOf(
+                "गोचर नक्षत्र कोणते?" to "${now.nakshatra}",
+                "नक्षत्र स्वामी कोण?" to now.nakshatraLord,
+                "नक्षत्राचे पारंपरिक विषय कोणते?" to nakshatraMeaning(now.nakshatra),
+                "नक्षत्र स्वामी जन्मकुंडलीत कुठे आहे?" to "नक्षत्र स्वामी ${now.nakshatraLord}; त्याची जन्मकुंडलीतील भाव/राशी/स्वामित्व स्वतंत्रपणे तपासा.",
+                "गोचर ग्रह → नक्षत्र → नक्षत्र स्वामी हा chain काय सांगतो?" to "ग्रहाचे फलित नक्षत्र स्वामीच्या जन्मस्थितीशी जोडून सूक्ष्म केले जाते.",
+                "जन्म नक्षत्राशी काय तुलना करायची?" to "जन्म नक्षत्र, गोचर नक्षत्र आणि ताराबल यांचा संबंध तपासा."
+            )),
+            StudySection("चरण", listOf(
+                "गोचर चरण कोणता?" to "${now.pada} चरण",
+                "चरणाची नवांश रास कोणती?" to now.navamshaRashi,
+                "नवांश स्वामी कोण?" to now.navamshaLord,
+                "चरणामुळे काय सूक्ष्म फरक पडतो?" to "नक्षत्राची दिशा अधिक सूक्ष्म करून नवांश/चरणातून फलिताची अभिव्यक्ती कोणत्या स्वरूपात दिसू शकते ते अभ्यासायचे.",
+                "नक्षत्र स्वामी + नवांश स्वामी यांचा संबंध काय?" to "दोन्ही स्वामींची जन्मकुंडलीतील स्थिती तुलना करून सूक्ष्म interpretation करायचे."
+            )),
+            StudySection("तुलनात्मक जोडणी", listOf(
+                "जन्मग्रहाचा भाव कोणता?" to "${bp.house}वा — लग्नापासून",
+                "गोचर ग्रहाचा भाव कोणता?" to "${now.house}वा — चंद्रापासून",
+                "${bp.house}वा → ${now.house}वा या बदलाचा अभ्यास काय?" to "जन्मातील स्थिर ग्रहभूमिका सध्याच्या सक्रिय गोचर क्षेत्राशी जोडायची.",
+                "चंद्रकुंडली काय सांगते?" to "मन/अनुभवाच्या पातळीवर गोचर भावाचा विषय कसा जाणवू शकतो ते पाहायचे.",
+                "लग्नकुंडली काय सांगते?" to "प्रत्यक्ष जीवनातील व्यवहार/घटना पातळीवरील भावसंबंध पाहायचा.",
+                "दशा उपलब्ध असल्यास काय विचारायचे?" to "दशा ग्रह सध्याच्या गोचर विषयाला support करतो का ते तपासायचे.",
+                "अंतिम भाकीत कधी करायचे?" to "सर्व स्वतंत्र संकेतांचा समान संदर्भात मेळ बसल्यानंतरच."
+            ))
+        )
+    }
+
+    private fun buildReasoning(g: Graha, bp: BirthChartCalculator.PlanetPosition, birthRashi: Rashi, birthNak: Nakshatra,
+                               birthInfo: JyotishInfo, now: FrameworkDay, kind: FrameworkKind,
+                               birthByHouse: Map<Int, List<String>>): String {
+        val aspects = aspectHouses(g, now.house)
+        val aspectBirth = aspects.flatMap { birthByHouse[it].orEmpty() }.distinct().joinToString(", ").ifBlank { "जन्मग्रह नाही" }
+        return buildString {
+            appendLine("1. ${g.marathi}: ${subjects[g] ?: "संबंधित ग्रहविषय"}.")
+            appendLine("2. गोचर भाव: ${now.house}वा भाव, जन्म चंद्रराशीपासून; विषय: ${houseFullMeaning(now.house)}.")
+            appendLine("3. गोचर रास: ${now.rashi}; राशी स्वामी: ${now.rashiLord}; स्थिती: ${dignity(g, now.rashi)}.")
+            appendLine("4. जन्मग्रह: ${bp.house}वा भाव, ${birthRashi.marathi}; नक्षत्र ${birthNak.marathi}, चरण ${bp.pada}, नक्षत्र स्वामी ${birthInfo.nakshatraLord}.")
+            appendLine("5. दृष्टी: ${now.aspects}; दृष्टीतील जन्मग्रह: $aspectBirth.")
+            appendLine("6. नक्षत्र: ${now.nakshatra}; स्वामी ${now.nakshatraLord}; विषय: ${nakshatraMeaning(now.nakshatra)}.")
+            appendLine("7. चरण: ${now.pada}; नवांश ${now.navamshaRashi}; नवांश स्वामी ${now.navamshaLord}.")
+            appendLine("8. संयुक्त Logic: ग्रहाचे कारकत्व + गोचर भाव + रास + जन्मग्रहाची मूलभूत भूमिका + दृष्टी + नक्षत्र + चरण/नवांश हे एकत्र वाचून सक्रिय जीवनक्षेत्र ठरवायचे.")
+        }
+    }
+
+    private fun buildPrediction(g: Graha, now: FrameworkDay, bp: BirthChartCalculator.PlanetPosition, kind: FrameworkKind): String =
+        "अभ्यासात्मक निष्कर्ष: ${g.marathi} च्या कारकत्वाचा सध्याच्या ${now.house}व्या गोचर भावाशी (${houseFullMeaning(now.house)}) संबंध जोडला जातो. ${now.rashi} रास, ${now.nakshatra} नक्षत्र, चरण ${now.pada} आणि दृष्टी हे परिणामाचे सूक्ष्म modifier आहेत. जन्मग्रह ${bp.house}व्या भावातील स्थिर पार्श्वभूमी देतो. त्यामुळे अंतिम फलित हे एकाच घटकावर नाही तर संपूर्ण संकेतांच्या संयोगावर आधारित आहे."
+
+    private fun aspectHouses(g: Graha, house: Int): List<Int> {
+        val distances = when (g) { Graha.MANGAL -> listOf(4,7,8); Graha.GURU -> listOf(5,7,9); Graha.SHANI -> listOf(3,7,10); else -> listOf(7) }
+        return distances.map { ((house + it - 2) % 12) + 1 }
+    }
+
+    private fun houseFullMeaning(h: Int): String = when (h) {
+        1 -> "स्वरूप, शरीर, व्यक्तिमत्त्व, आरंभ, आत्मदृष्टी"
+        2 -> "धन, कुटुंब, वाणी, आहार, संचय"
+        3 -> "पराक्रम, प्रयत्न, communication, लेखन, marketing, भावंडे, छोटे प्रवास"
+        4 -> "घर, माता, सुख, मानसिक शांतता, शिक्षणाची पायाभरणी, मालमत्ता"
+        5 -> "बुद्धी, शिक्षण, सर्जनशीलता, संतती, निर्णय, speculation"
+        6 -> "रोग, सेवा, कर्ज, शत्रू, स्पर्धा, दैनंदिन काम"
+        7 -> "विवाह, भागीदारी, clients, व्यापार, public dealing"
+        8 -> "अचानक बदल, संशोधन, गुप्त विषय, दीर्घकालीन/संयुक्त संसाधने"
+        9 -> "भाग्य, धर्म/तत्त्वज्ञान, गुरु, उच्च ज्ञान, दूरचा प्रवास"
+        10 -> "कर्म, profession, पद, authority, reputation, public role"
+        11 -> "लाभ, उत्पन्न, इच्छा पूर्ती, मित्र, नेटवर्क, मोठे संपर्क"
+        12 -> "खर्च, परदेश, विश्रांती, रुग्णालय/एकांत, सोडून देणे"
+        else -> "जीवनक्षेत्र"
+    }
+
+    private fun houseDomainMeaning(h: Int, kind: FrameworkKind): String = when (kind) {
+        FrameworkKind.MEDICAL -> when(h){1->"शरीर/स्वास्थ्य";2->"आहार/वाणी";3->"हात-खांदे/प्रयत्न";4->"छाती/मन";5->"पचन/उदर";6->"रोग/सेवा";7->"संबंध";8->"दीर्घकालीन संकेत";9->"ज्ञान/भाग्य";10->"कर्म";11->"लाभ/सामाजिक सक्रियता";12->"विश्रांती/खर्च";else->"आरोग्य क्षेत्र"}
+        FrameworkKind.BUSINESS -> when(h){2->"पैसा/भांडवल";3->"marketing/communication";6->"competition/operations";7->"partnership/clients";10->"business/career";11->"profit/network";12->"expenses/foreign";else->houseFullMeaning(h)}
+        FrameworkKind.EDUCATION -> when(h){4->"मूलभूत शिक्षण/मन";5->"बुद्धी/learning";9->"higher education";2->"वाणी/आहार";3->"प्रयत्न/communication";10->"career";else->houseFullMeaning(h)}
+        FrameworkKind.VASTU -> "दिशा/घर/वास्तुशी तुलनात्मक अभ्यास"
+    }
+
+    private fun houseMeaning(h: Int, kind: FrameworkKind): String = houseDomainMeaning(h, kind)
+
+    private val subjects = mapOf(
+        Graha.SURYA to "आत्मविश्वास, अधिकार, सरकारी काम, वडील/वरिष्ठ, प्रतिष्ठा, नेतृत्व, पद, मान-सन्मान, निर्णयक्षमता",
+        Graha.CHANDRA to "मन, भावना, सवय, संवेदनशीलता, माता, जनसंपर्क, प्रवाहशीलता",
+        Graha.MANGAL to "ऊर्जा, धाडस, कृती, स्पर्धा, जमीन, तांत्रिक काम, भाऊ/बंधू",
+        Graha.BUDH to "बुद्धी, संवाद, व्यापार, गणित, लेखन, analysis, marketing",
+        Graha.GURU to "ज्ञान, गुरु, मार्गदर्शन, विस्तार, शिक्षण, भाग्य, मूल्यव्यवस्था",
+        Graha.SHUKRA to "संबंध, सुख, कला, सौंदर्य, पैसा, सुविधा, वाहन/भौतिक सुख",
+        Graha.SHANI to "शिस्त, विलंब, कामगार, जबाबदारी, सेवा, दीर्घकालीन प्रयत्न, संरचना",
+        Graha.RAHU to "आकांक्षा, परकीय विषय, असामान्य मार्ग, तंत्रज्ञान, भ्रम, अचानक विस्तार",
+        Graha.KETU to "विरक्ती, संशोधन, अंतर्मुखता, आध्यात्मिकता, सूक्ष्म निरीक्षण, तुटकपणा"
+    )
+
+    private fun planetPeopleEvents(g: Graha): String = when(g){
+        Graha.SURYA->"वडील, वरिष्ठ, अधिकारी, सरकारी संस्था, नेतृत्वाची भूमिका"
+        Graha.CHANDRA->"माता, कुटुंबातील भावनिक संबंध, जनता, स्त्रीत्व/पालनपोषण"
+        Graha.MANGAL->"भाऊ, प्रतिस्पर्धी, सैनिक/तांत्रिक व्यक्ती, कृतीप्रधान प्रसंग"
+        Graha.BUDH->"व्यापारी, विद्यार्थी, लेखक, accountant, communicator"
+        Graha.GURU->"गुरु, शिक्षक, सल्लागार, ज्येष्ठ मार्गदर्शक"
+        Graha.SHUKRA->"जोडीदार, कला/सौंदर्य क्षेत्र, सुविधा देणारे संबंध"
+        Graha.SHANI->"कामगार, कर्मचारी, सेवकवर्ग, वरिष्ठ जबाबदारी/संस्था"
+        Graha.RAHU->"परकीय/असामान्य संपर्क, technology, unconventional networks"
+        Graha.KETU->"संशोधन, एकांत, detachment, सूक्ष्म/आध्यात्मिक विषय"
+    }
+
+    private fun planetPositive(g: Graha): String = when(g){
+        Graha.SURYA->"आत्मविश्वास, नेतृत्व, authority, मान-सन्मान"
+        Graha.CHANDRA->"समजूतदारपणा, adaptability, लोकांशी जोडणी"
+        Graha.MANGAL->"धाडस, कृती, स्पर्धात्मकता, ऊर्जा"
+        Graha.BUDH->"बुद्धी, संवाद, गणना, व्यापारकौशल्य"
+        Graha.GURU->"ज्ञान, संरक्षण, विस्तार, मार्गदर्शन"
+        Graha.SHUKRA->"समन्वय, कला, संबंध, सुविधा"
+        Graha.SHANI->"शिस्त, सहनशीलता, सातत्य, रचना"
+        Graha.RAHU->"नवीन तंत्रज्ञान, मोठी आकांक्षा, unconventional opportunity"
+        Graha.KETU->"संशोधन, एकाग्र अंतर्मुखता, सूक्ष्म निरीक्षण"
+    }
+
+    private fun planetCaution(g: Graha): String = when(g){
+        Graha.SURYA->"अहंकार, हट्ट, वरिष्ठांशी तणाव, अतिअधिकारभाव"
+        Graha.CHANDRA->"अस्थिर मन, भावनिक प्रतिक्रिया, over-sensitivity"
+        Graha.MANGAL->"घाई, राग, संघर्ष, अपघाती जोखीम"
+        Graha.BUDH->"अति-विचार, गैरसमज, चुकीची गणना/communication"
+        Graha.GURU->"अति-विस्तार, अति-आशावाद, खर्च/अति-विश्वास"
+        Graha.SHUKRA->"अति-सुखलोलुपता, संबंधातील अपेक्षा, अनावश्यक खर्च"
+        Graha.SHANI->"विलंब, भीती, जडपणा, जबाबदारीचा ताण"
+        Graha.RAHU->"भ्रम, अतिआकांक्षा, shortcuts, अस्पष्टता"
+        Graha.KETU->"तुटकपणा, उदासीनता, अचानक दूर होणे"
+    }
+
+    private fun rashiNature(rashi: String): String = when(rashi){
+        "मेष"->"अग्नी, चर, सुरुवात/कृती"; "वृषभ"->"पृथ्वी, स्थिर, संसाधन/संचय"; "मिथुन"->"वायू, द्विस्वभाव, संवाद/बुद्धी"; "कर्क"->"जल, चर, भावना/घर"; "सिंह"->"अग्नी, स्थिर, authority/leadership"; "कन्या"->"पृथ्वी, द्विस्वभाव, analysis/service"; "तुळ"->"वायू, चर, संबंध/समतोल"; "वृश्चिक"->"जल, स्थिर, गूढता/तीव्रता"; "धनु"->"अग्नी, द्विस्वभाव, ज्ञान/विस्तार"; "मकर"->"पृथ्वी, चर, कर्म/रचना"; "कुंभ"->"वायू, स्थिर, समूह/नवीनता"; "मीन"->"जल, द्विस्वभाव, अंतर्ज्ञान/विस्तार"; else->"राशीचे स्वरूप"
+    }
+
+    private fun planetRashiRelation(g: Graha, rashi: String): String = when {
+        g == Graha.SURYA && rashi == "सिंह" -> "स्वगृही"
+        g == Graha.CHANDRA && rashi == "कर्क" -> "स्वगृही"
+        g == Graha.MANGAL && (rashi == "मेष" || rashi == "वृश्चिक") -> "स्वगृही"
+        g == Graha.BUDH && (rashi == "मिथुन" || rashi == "कन्या") -> "स्वगृही"
+        g == Graha.GURU && (rashi == "धनु" || rashi == "मीन") -> "स्वगृही"
+        g == Graha.SHUKRA && (rashi == "वृषभ" || rashi == "तुळ") -> "स्वगृही"
+        g == Graha.SHANI && (rashi == "मकर" || rashi == "कुंभ") -> "स्वगृही"
+        else -> "राशी-ग्रह संबंध स्वतंत्रपणे तपासा."
+    }
+
+    private fun dignity(g: Graha, rashi: String): String = when {
+        g == Graha.SURYA && rashi == "सिंह" -> "स्वगृही — पारंपरिक दृष्ट्या बळकट"
+        g == Graha.SURYA && rashi == "मेष" -> "उच्च"
+        g == Graha.SURYA && rashi == "तुळ" -> "नीच"
+        g == Graha.CHANDRA && rashi == "कर्क" -> "स्वगृही"
+        g == Graha.CHANDRA && rashi == "वृषभ" -> "उच्च"
+        g == Graha.CHANDRA && rashi == "वृश्चिक" -> "नीच"
+        g == Graha.MANGAL && (rashi == "मेष" || rashi == "वृश्चिक") -> "स्वगृही"
+        g == Graha.MANGAL && rashi == "मकर" -> "उच्च"
+        g == Graha.MANGAL && rashi == "कर्क" -> "नीच"
+        g == Graha.BUDH && (rashi == "मिथुन" || rashi == "कन्या") -> "स्वगृही"
+        g == Graha.BUDH && rashi == "कन्या" -> "उच्च/स्वगृही"
+        g == Graha.BUDH && rashi == "मीन" -> "नीच"
+        g == Graha.GURU && (rashi == "धनु" || rashi == "मीन") -> "स्वगृही"
+        g == Graha.GURU && rashi == "कर्क" -> "उच्च"
+        g == Graha.GURU && rashi == "मकर" -> "नीच"
+        g == Graha.SHUKRA && (rashi == "वृषभ" || rashi == "तुळ") -> "स्वगृही"
+        g == Graha.SHUKRA && rashi == "मीन" -> "उच्च"
+        g == Graha.SHUKRA && rashi == "कन्या" -> "नीच"
+        g == Graha.SHANI && (rashi == "मकर" || rashi == "कुंभ") -> "स्वगृही"
+        g == Graha.SHANI && rashi == "तुळ" -> "उच्च"
+        g == Graha.SHANI && rashi == "मेष" -> "नीच"
+        else -> planetRashiRelation(g, rashi)
+    }
+
+    private fun nakshatraMeaning(n: String): String = when(n){
+        "अश्विनी"->"वेग, आरंभ, उपचार/चपळता"; "भरणी"->"जबाबदारी, धारणशक्ती, परिवर्तन"; "कृत्तिका"->"शुद्धीकरण, निर्णय, तीक्ष्णता"; "रोहिणी"->"वृद्धी, आकर्षण, निर्मिती"; "मृगशीर्ष"->"शोध, उत्सुकता, प्रवास"; "आर्द्रा"->"तीव्र बदल, संशोधन, disruption"; "पुनर्वसू"->"पुनरागमन, पुनर्बांधणी, विस्तार"; "पुष्य"->"पोषण, शिस्त, संरक्षण"; "आश्लेषा"->"गूढता, रणनीती, अंतर्मुखता"; "मघा"->"पूर्वज, प्रतिष्ठा, अधिकार"; "पूर्वाफाल्गुनी"->"सुख, संबंध, सर्जनशीलता"; "उत्तराफाल्गुनी"->"करार, जबाबदारी, स्थैर्य"; "हस्त"->"कौशल्य, नियंत्रण, हस्तकौशल्य"; "चित्रा"->"रचना, सौंदर्य, सर्जनशीलता"; "स्वाती"->"स्वातंत्र्य, व्यापार, adaptability"; "विशाखा"->"ध्येय, विस्तार, स्पर्धात्मक साध्य"; "अनुराधा"->"मैत्री, नेटवर्क, devotion"; "ज्येष्ठा"->"जबाबदारी, संरक्षण, वरिष्ठता"; "मूळ"->"मुळाशी जाणे, संशोधन, परिवर्तन"; "पूर्वाषाढा"->"प्रेरणा, विजय, प्रभाव"; "उत्तराषाढा"->"स्थैर्य, नेतृत्व, दीर्घकालीन यश"; "श्रवण"->"ऐकणे, शिक्षण, माहिती"; "धनिष्ठा"->"संसाधने, ताल, समूह"; "शतभिषा"->"उपचार, संशोधन, गोपनीयता"; "पूर्वाभाद्रपदा"->"तीव्र आदर्श, परिवर्तन, तपस्या"; "उत्तराभाद्रपदा"->"स्थैर्य, खोल विचार, संयम"; "रेवती"->"मार्गदर्शन, प्रवास, पूर्णता"; else->"नक्षत्राचे पारंपरिक विषय"
+    }
+
+    private fun degreeText(v: Double): String = String.format(java.util.Locale.US, "%.2f", v % 30.0)
     private fun longitude(swe: swisseph.SwissEph, jd: Double, body: Int): Double { val xx=DoubleArray(6); swe.swe_calc_ut(jd, body, swisseph.SweConst.SEFLG_SWIEPH or swisseph.SweConst.SEFLG_SIDEREAL, xx, StringBuffer()); return ((xx[0] % 360)+360)%360 }
     private fun rashiIndex(v: Double) = (v/30.0).toInt().coerceIn(0,11)
     private fun julianDay(date: LocalDate, hour: Double): Double { val cal=java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Kolkata")); cal.set(date.year,date.monthValue-1,date.dayOfMonth,12,0,0); cal.set(java.util.Calendar.MILLISECOND,0); return swisseph.SweDate.getJulDay(cal.get(java.util.Calendar.YEAR),cal.get(java.util.Calendar.MONTH)+1,cal.get(java.util.Calendar.DAY_OF_MONTH),hour,swisseph.SweDate.SE_GREG_CAL) }
-    private fun aspectText(g: Graha, house: Int): String { val hs = when(g){Graha.MANGAL->listOf(4,7,8); Graha.GURU->listOf(5,7,9); Graha.SHANI->listOf(3,7,10); else->listOf(7)}; return hs.joinToString(", "){ "${((house+it-2)%12)+1}वा भाव" } }
-    private fun houseMeaning(h: Int, kind: FrameworkKind) = when(kind){ FrameworkKind.MEDICAL -> mapOf(1 to "शरीर/स्वास्थ्य",2 to "आहार/वाणी",3 to "हात-खांदे/प्रयत्न",4 to "छाती/मन",5 to "पचन/उदर",6 to "रोग/सेवा",7 to "संबंध",8 to "दीर्घकालीन संकेत",9 to "भाग्य/ज्ञान",10 to "कर्म",11 to "लाभ",12 to "विश्रांती/खर्च")[h] ?: "जीवनक्षेत्र"; FrameworkKind.BUSINESS -> mapOf(2 to "पैसा/भांडवल",3 to "मार्केटिंग/संवाद",6 to "स्पर्धा/operations",7 to "भागीदारी/clients",10 to "व्यवसाय/कर्म",11 to "profit/network",12 to "expenses")[h] ?: "व्यवसायाचे जीवनक्षेत्र"; FrameworkKind.EDUCATION -> mapOf(4 to "मूलभूत शिक्षण",5 to "बुद्धी/learning",9 to "उच्च शिक्षण",2 to "आहार/वाणी",3 to "प्रयत्न",10 to "career")[h] ?: "शिक्षणाशी संबंधित क्षेत्र"; FrameworkKind.VASTU -> "दिशा/वास्तुशी तुलनात्मक अभ्यास" }
-    private val subjects = mapOf(Graha.SURYA to "आत्मविश्वास, अधिकार, प्रतिष्ठा, नेतृत्व, वरिष्ठ, सरकारी काम", Graha.CHANDRA to "मन, भावना, सवय, संवेदनशीलता, जनसंपर्क", Graha.MANGAL to "ऊर्जा, धाडस, कृती, स्पर्धा, जमीन", Graha.BUDH to "बुद्धी, संवाद, व्यापार, गणित, लेखन", Graha.GURU to "ज्ञान, मार्गदर्शन, विस्तार, शिक्षण, भाग्य", Graha.SHUKRA to "संबंध, सुख, कला, पैसा, सुविधा", Graha.SHANI to "शिस्त, विलंब, कामगार, जबाबदारी, दीर्घकालीन प्रयत्न", Graha.RAHU to "आकांक्षा, परकीय विषय, असामान्य मार्ग, भ्रम", Graha.KETU to "विरक्ती, संशोधन, अंतर्मुखता")
-    private fun reasoning(g: Graha, birthHouse: Int, birthRashi: String, now: FrameworkDay, kind: FrameworkKind) = "जन्मकुंडलीतील ${g.marathi} ${birthHouse}व्या भावात $birthRashi राशीत आहे. त्यामुळे जन्मतः ${subjects[g] ?: "संबंधित विषय"} या ग्रहाशी जोडलेले आहेत. सध्या तो जन्म चंद्रराशीपासून ${now.house}व्या भावातून ${now.rashi} राशीत गोचर करतो. त्या भावाचे ${houseMeaning(now.house, kind)} हे क्षेत्र सक्रिय होते. ${now.nakshatra} नक्षत्र, चरण ${now.pada} आणि ग्रहाची दृष्टी विचारात घेऊन परिणामाचा संदर्भ तयार होतो. म्हणून अंतिम भाकीत एकाच घटकावर नाही तर जन्मस्थिती + गोचर भाव + रास + दृष्टी + नक्षत्र यांच्या संयोगावर आधारित आहे."
-    private fun prediction(g: Graha, now: FrameworkDay, kind: FrameworkKind) = "${g.marathi} सध्या ${now.house}व्या भावातून गोचर करत असल्याने ${houseMeaning(now.house, kind)} क्षेत्राचा पारंपरिक ज्योतिषीय अभ्यास करण्यासाठी हा दिवस महत्त्वाचा आहे. हा निष्कर्ष अभ्यासात्मक आहे; अंतिम फलितासाठी इतर ग्रह, दशा, नक्षत्र व संपूर्ण कुंडलीचा संदर्भ आवश्यक आहे."
 }
