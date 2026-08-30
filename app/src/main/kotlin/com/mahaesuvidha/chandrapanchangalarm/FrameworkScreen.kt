@@ -85,25 +85,28 @@ private fun FrameworkStudyPopup(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title, style = MaterialTheme.typography.titleLarge) },
+        containerColor = Color(0xFFF8F9FA),
+        titleContentColor = Color(0xFF111827),
+        textContentColor = Color(0xFF1F2937),
+        title = {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
         text = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                tonalElevation = 0.dp
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 560.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                androidx.compose.foundation.lazy.LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 560.dp)
-                ) {
-                    item {
-                        Text(
-                            text = body,
-                            style = MaterialTheme.typography.bodyLarge,
-                            lineHeight = 24.sp
-                        )
-                    }
-                }
+                Text(
+                    body,
+                    style = MaterialTheme.typography.bodyLarge,
+                    lineHeight = 25.sp
+                )
             }
         },
         confirmButton = {
@@ -226,7 +229,21 @@ private fun PlanetStudyCard(p: FrameworkPlanet) {
                 StudySectionCard("⑥ नक्षत्र — नक्षत्र स्वामीपर्यंत विचार", p.sections[5])
                 StudySectionCard("⑦ चरण — नवांशासह सूक्ष्म विचार", p.sections[6])
                 StudySectionCard("⑧ जोडणी — जन्म + गोचर + इतर संकेत", p.sections[7])
+                if (p.sections.size > 8) {
+                    StudySectionCard("⑨ ${conceptTitle(p.sections[8].title)} — क्षेत्रीय Concept", p.sections[8])
+                }
                 Spacer(Modifier.height(6.dp))
+                var logicPopup by remember { mutableStateOf(false) }
+                OutlinedButton(onClick = { logicPopup = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("🧠 संयुक्त Logic + भाकीत कसे तयार झाले?")
+                }
+                if (logicPopup) {
+                    FrameworkStudyPopup(
+                        "🧠 ${p.graha.marathi} — संयुक्त Logic आणि निष्कर्ष",
+                        "${p.reasoning}\n\n🔮 अंतिम भाकीत\n${p.prediction}",
+                    ) { logicPopup = false }
+                }
+                Spacer(Modifier.height(4.dp))
                 OutlinedButton(onClick = { comparison = !comparison }, modifier = Modifier.fillMaxWidth()) {
                     Text(if (comparison) "⌃ Comparison बंद करा" else "📊 Comparison — मागील 2 दिवस + आज + पुढील 2 दिवस")
                 }
@@ -238,23 +255,38 @@ private fun PlanetStudyCard(p: FrameworkPlanet) {
 
 @Composable
 private fun StudySectionCard(title: String, section: StudySection) {
-    var expanded by remember { mutableStateOf(false) }
-    Card(Modifier.fillMaxWidth().padding(vertical = 3.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF0B2038)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = .06f))) {
-        Column(Modifier.padding(10.dp)) {
-            Row(Modifier.fillMaxWidth().clickable { expanded = !expanded }, verticalAlignment = Alignment.CenterVertically) {
-                Text(title, color = Color(0xFFFFC83D), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Text(if (expanded) "⌃" else "⌄", color = Color.LightGray)
+    var popup by remember { mutableStateOf(false) }
+    Card(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp)
+            .clickable { popup = true },
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0B2038)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = .08f))
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, color = Color(0xFFFFC83D), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "टॅप करा → मोठ्या अक्षरात संपूर्ण अभ्यास वाचा",
+                    color = Color.LightGray,
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(top = 3.dp)
+                )
             }
-            if (expanded) {
-                Spacer(Modifier.height(5.dp))
-                section.points.forEach { (question, answer) ->
-                    Text("❓ $question", color = Color(0xFFFFC83D), fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 5.dp))
-                    Text("→ $answer", color = Color(0xFFF5F7FA), fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
-                }
-            }
+            Text("›", color = Color(0xFFFFC83D), fontSize = 25.sp)
         }
+    }
+    if (popup) {
+        val body = section.points.joinToString("\n\n") { (question, answer) ->
+            "❓ $question\n→ $answer"
+        }
+        FrameworkStudyPopup(title, body) { popup = false }
     }
 }
 
@@ -454,9 +486,114 @@ private object FrameworkCalculator {
                 "लग्नकुंडली काय सांगते?" to "प्रत्यक्ष जीवनातील व्यवहार/घटना पातळीवरील भावसंबंध पाहायचा.",
                 "दशा उपलब्ध असल्यास काय विचारायचे?" to "दशा ग्रह सध्याच्या गोचर विषयाला support करतो का ते तपासायचे.",
                 "अंतिम भाकीत कधी करायचे?" to "सर्व स्वतंत्र संकेतांचा समान संदर्भात मेळ बसल्यानंतरच."
-            ))
+            )),
+            conceptSection(g, now, bp, kind)
         )
     }
+
+    private fun conceptTitle(title: String): String = when {
+        title.contains("Medical") || title.contains("आरोग्य") -> "Medical Concept"
+        title.contains("Business") || title.contains("व्यवसाय") -> "Business Concept"
+        title.contains("Educational") || title.contains("शिक्षण") -> "Education Concept"
+        title.contains("Vastu") || title.contains("वास्तु") -> "Vastu Concept"
+        else -> title
+    }
+
+    private fun conceptSection(g: Graha, now: FrameworkDay, bp: BirthChartCalculator.PlanetPosition, kind: FrameworkKind): StudySection {
+        return when (kind) {
+            FrameworkKind.MEDICAL -> StudySection("Medical Concept", medicalConceptPoints(g, now.house))
+            FrameworkKind.BUSINESS -> StudySection("Business Concept", businessConceptPoints(g, now.house))
+            FrameworkKind.EDUCATION -> StudySection("Education Concept", educationConceptPoints(g, now.house))
+            FrameworkKind.VASTU -> StudySection("Vastu Concept", vastuConceptPoints(g, now.house))
+        }
+    }
+
+    private fun medicalConceptPoints(g: Graha, h: Int): List<Pair<String, String>> = listOf(
+        "या ग्रहाचा पारंपरिक health-related concept काय?" to medicalPlanet(g),
+        "सध्याचा गोचर भाव कोणत्या health theme शी जोडला जातो?" to medicalHouse(h),
+        "physiological system कोणता अभ्यासायचा?" to medicalSystem(g, h),
+        "हा अभ्यास कसा करायचा?" to "ग्रहाचे पारंपरिक कारकत्व + भावाचा health theme + रास/नक्षत्र/दृष्टी यांची तुलना करायची; एकाच संकेतावर निष्कर्ष काढायचा नाही.",
+        "काय लक्षात ठेवायचे?" to "Medical Astrology हा पारंपरिक/शैक्षणिक संकेत-अभ्यास आहे; तो वैद्यकीय diagnosis, prognosis किंवा treatment चा पर्याय नाही."
+    )
+
+    private fun businessConceptPoints(g: Graha, h: Int): List<Pair<String, String>> = listOf(
+        "या ग्रहाचा business concept काय?" to businessPlanet(g),
+        "सध्याचा भाव कोणत्या business function शी जोडला जातो?" to businessHouse(h),
+        "finance/sales/marketing/operations/management/partnership/risk पैकी काय पाहायचे?" to businessFunction(g, h),
+        "जन्मग्रहाचा business role काय?" to "जन्मभाव + ग्रहकारकत्वातून व्यक्तीची मूलभूत कार्यशैली; गोचरातून सध्याचा active business area.",
+        "काय लक्षात ठेवायचे?" to "Opportunity आणि risk दोन्ही लिहायचे; एकाच ग्रहाला फक्त profit किंवा फक्त loss म्हणून पाहायचे नाही."
+    )
+
+    private fun educationConceptPoints(g: Graha, h: Int): List<Pair<String, String>> = listOf(
+        "या ग्रहाचा education concept काय?" to educationPlanet(g),
+        "सध्याचा भाव कोणत्या learning theme शी जोडला जातो?" to educationHouse(h),
+        "learning/memory/concentration/communication/higher education/examination/skill पैकी काय सक्रिय?" to educationFunction(g, h),
+        "जन्मग्रहाची भूमिका काय?" to "जन्मग्रहाची बुद्धी/शिक्षणाशी संबंधित पारंपरिक भूमिका आणि जन्मभाव स्थिर आधार देतात; गोचर सध्याची सक्रिय दिशा दाखवतो.",
+        "काय लक्षात ठेवायचे?" to "शैक्षणिक निकालासाठी प्रत्यक्ष अभ्यास, वातावरण आणि प्रयत्न महत्त्वाचे आहेत; ज्योतिषीय भाग हा अभ्यासाचा interpretive layer आहे."
+    )
+
+    private fun vastuConceptPoints(g: Graha, h: Int): List<Pair<String, String>> = listOf(
+        "या ग्रहाचा Vastu concept काय?" to vastuPlanet(g),
+        "सध्याचा भाव कोणत्या space-use theme शी तुलना करायचा?" to vastuHouse(h),
+        "दिशा व पंचमहाभूत कसे तपासायचे?" to "दिशा, पंचमहाभूत, वास्तुपुरुष मंडल आणि space usage स्वतंत्रपणे तपासून नंतर ग्रहसंकेताशी तुलना करायची.",
+        "कोणत्या जागा तपासायच्या?" to "मुख्य प्रवेश, workplace/office, bedroom, kitchen, पूजा/अभ्यास जागा, धन/संचय क्षेत्र आणि Brahmasthan.",
+        "काय लक्षात ठेवायचे?" to "वास्तुचे स्थिर घटक आणि दैनिक गोचर वेगळे ठेवायचे; गोचराला वास्तुचा एकमेव कारण म्हणून वापरायचे नाही."
+    )
+
+    private fun medicalPlanet(g: Graha): String = when(g){
+        Graha.SURYA->"जीवनशक्ती, शरीराची उष्णता, हृदय/दृष्टीशी संबंधित पारंपरिक संकेत"
+        Graha.CHANDRA->"मन, भावना, द्रव/पोषण, झोप व संवेदनशीलतेशी संबंधित पारंपरिक संकेत"
+        Graha.MANGAL->"ऊर्जा, रक्त/उष्णता, inflammation/injury शी संबंधित पारंपरिक संकेत"
+        Graha.BUDH->"मज्जासंस्था, त्वचा/संवाद-समन्वयाशी संबंधित पारंपरिक संकेत"
+        Graha.GURU->"वाढ, पोषण, यकृत/चयापचयाशी संबंधित पारंपरिक संकेत"
+        Graha.SHUKRA->"प्रजनन, हार्मोनल/सौंदर्य व मूत्र-जनन क्षेत्राशी संबंधित पारंपरिक संकेत"
+        Graha.SHANI->"हाडे, सांधे, chronicity/दीर्घकालीन प्रक्रियांशी संबंधित पारंपरिक संकेत"
+        Graha.RAHU->"असामान्य/अस्पष्ट लक्षणे, toxins/allergy-सदृश पारंपरिक theme"
+        Graha.KETU->"सूक्ष्म/न्यूरोलॉजिकल, detachment व अनपेक्षित बदलांचे पारंपरिक theme"
+    }
+    private fun medicalHouse(h:Int)=when(h){1->"शरीर/constitution";2->"आहार व मुख-क्षेत्र";3->"हात-खांदे/श्वसन-समन्वय";4->"छाती/मन";5->"उदर/पचन";6->"रोग, सेवा, routine";7->"संबंधित balance";8->"दीर्घकालीन/गूढ health themes";9->"ज्ञान/मानसिक दृष्टी";10->"दैनंदिन कार्यक्षमता";11->"recovery/support network";12->"विश्रांती, झोप, isolation";else->"आरोग्य theme"}
+    private fun medicalSystem(g:Graha,h:Int):String="${medicalPlanet(g)} + ${medicalHouse(h)}; नंतर रास, नक्षत्र आणि दृष्टीने theme refine करा."
+
+    private fun businessPlanet(g:Graha)=when(g){
+        Graha.SURYA->"leadership, authority, government, brand reputation"
+        Graha.CHANDRA->"public demand, customer mood, adaptability"
+        Graha.MANGAL->"execution, competition, machinery, action"
+        Graha.BUDH->"sales, communication, accounting, analysis, marketing"
+        Graha.GURU->"strategy, advisory, expansion, knowledge"
+        Graha.SHUKRA->"branding, luxury, design, customer relations"
+        Graha.SHANI->"operations, labour, compliance, systems, long-term structure"
+        Graha.RAHU->"technology, foreign markets, unconventional growth"
+        Graha.KETU->"specialisation, research, detachment from routine"
+    }
+    private fun businessHouse(h:Int)=when(h){2->"finance/cash flow";3->"sales/marketing/communication";6->"operations/competition/debt";7->"partnership/clients/trade";8->"risk, tax, joint resources";10->"management/career/authority";11->"profit/network/growth";12->"expenses/foreign/overhead";else->houseFullMeaning(h)}
+    private fun businessFunction(g:Graha,h:Int):String="ग्रहाचा business role '${businessPlanet(g)}' आणि भावाचा function '${businessHouse(h)}' एकत्र वाचा."
+
+    private fun educationPlanet(g:Graha)=when(g){
+        Graha.SURYA->"confidence, leadership, self-expression"
+        Graha.CHANDRA->"memory, emotional learning, receptivity"
+        Graha.MANGAL->"competitive drive, practical/action learning"
+        Graha.BUDH->"learning, memory, communication, logic, analysis"
+        Graha.GURU->"higher education, wisdom, mentoring, conceptual learning"
+        Graha.SHUKRA->"arts, creativity, aesthetics, social learning"
+        Graha.SHANI->"discipline, repetition, patience, structured study"
+        Graha.RAHU->"technology, unconventional subjects, experimentation"
+        Graha.KETU->"deep research, concentration, specialised study"
+    }
+    private fun educationHouse(h:Int)=when(h){2->"speech/basic learning";3->"communication, writing, practice";4->"foundation, school environment, emotional security";5->"learning, memory, intelligence, examination";6->"routine, competition, service-oriented skills";9->"higher education, philosophy";10->"career-oriented learning";11->"results, networks, opportunities";12->"retreat, foreign education, rest";else->houseFullMeaning(h)}
+    private fun educationFunction(g:Graha,h:Int):String="ग्रहाचा learning role '${educationPlanet(g)}' आणि भावाचा education theme '${educationHouse(h)}' एकत्र अभ्यासा."
+
+    private fun vastuPlanet(g:Graha)=when(g){
+        Graha.SURYA->"प्रकाश, authority, central vitality; पूर्व/सूर्य-संबंधित symbolism"
+        Graha.CHANDRA->"जल, मन, comfort; उत्तर-पश्चिम/जल-संबंधित symbolism"
+        Graha.MANGAL->"अग्नी, ऊर्जा, उपकरणे; दक्षिण/आग्नेय-संबंधित symbolism"
+        Graha.BUDH->"communication, learning, व्यापार; उत्तर-संबंधित symbolism"
+        Graha.GURU->"ज्ञान, विस्तार, पूजा/शिक्षण; ईशान्य-संबंधित symbolism"
+        Graha.SHUKRA->"सुख, सौंदर्य, सुविधा; आग्नेय/दक्षिण-पूर्वाशी पारंपरिक तुलना"
+        Graha.SHANI->"रचना, भार, शिस्त, storage; नैऋत्य-संबंधित symbolism"
+        Graha.RAHU->"असामान्य/technology spaces; वायव्य/उत्तर-पश्चिमाशी तुलनात्मक symbolism"
+        Graha.KETU->"detachment, spiritual/research space; सूक्ष्म/आध्यात्मिक जागेची तुलना"
+    }
+    private fun vastuHouse(h:Int)=when(h){1->"entrance/identity space";2->"storage/wealth and speech-related space";4->"home comfort/central living";5->"study/creative space";6->"service/work and maintenance";7->"partnership/client-facing space";8->"hidden/storage/maintenance issues";9->"prayer/learning/temple-like space";10->"workplace/office";11->"networking/gains space";12->"sleep/rest/foreign or secluded space";else->"space usage theme"}
 
     private fun buildReasoning(g: Graha, bp: BirthChartCalculator.PlanetPosition, birthRashi: Rashi, birthNak: Nakshatra,
                                birthInfo: JyotishInfo, now: FrameworkDay, kind: FrameworkKind,
