@@ -3,6 +3,7 @@ package com.mahaesuvidha.chandrapanchangalarm
 import android.location.Geocoder
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -131,35 +132,87 @@ fun TodayPredictionScreen(
 
         PredictionCard(card, white) {
             Text("📊 ग्रहांचे चंद्रापासून गोचर", color = gold, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-            Text("जन्मकुंडलीतील स्थिती → सध्याचा चंद्रापासून गोचर", color = Color.LightGray, fontSize = 11.sp)
+            Text("जन्मभाव = जन्मलग्नापासून  •  गोचर भाव = जन्म चंद्रराशीपासून", color = Color.LightGray, fontSize = 11.sp)
             if (birthCoordinates == null) {
                 Text("जन्मठिकाण शोधत आहे...", color = Color.Gray, fontSize = 10.sp)
             }
-            Spacer(Modifier.height(6.dp))
-            Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("ग्रह / जन्मकुंडली", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.15f))
-                Text("चंद्रापासून गोचर", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f), textAlign = TextAlign.Center)
-                Text("Score", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(38.dp), textAlign = TextAlign.End)
+            Spacer(Modifier.height(8.dp))
+
+            // Horizontal scroll keeps all columns readable on smaller phones.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(bottom = 5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("ग्रह", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(92.dp))
+                Text("जन्मभाव\n(लग्नापासून)", color = gold, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(92.dp), textAlign = TextAlign.Center)
+                Text("जन्मराशी", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(82.dp), textAlign = TextAlign.Center)
+                Text("गोचर भाव\n(चंद्रापासून)", color = gold, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(100.dp), textAlign = TextAlign.Center)
+                Text("गोचर रास", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(82.dp), textAlign = TextAlign.Center)
+                Text("Score", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(48.dp), textAlign = TextAlign.End)
             }
+
             prediction.rows.forEach { row ->
                 val scoreColor = when {
                     row.score <= -2 -> red
                     row.score >= 2 -> green
                     else -> white
                 }
-                Column(Modifier.padding(vertical = 5.dp)) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1.15f)) {
-                            Text("${planetEmoji(row.graha)} ${row.graha}", color = white, fontWeight = FontWeight.Bold)
-                            Text("जन्म: ${row.birthPosition}", color = Color.LightGray, fontSize = 11.sp)
+                Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.width(92.dp)) {
+                            Text("${planetEmoji(row.graha)} ${row.graha}", color = white, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
-                        Column(modifier = Modifier.weight(1.0f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("गोचर: ${row.house}वा भाव", color = white, fontSize = 12.sp)
-                            Text(row.rashi, color = gold, fontWeight = FontWeight.Bold)
-                        }
-                        Text(signed(row.score), color = scoreColor, fontWeight = FontWeight.Bold, modifier = Modifier.width(38.dp), textAlign = TextAlign.End)
+                        Text(
+                            row.birthHouse?.let { "${it}वा भाव" } ?: "—",
+                            color = white,
+                            fontSize = 12.sp,
+                            modifier = Modifier.width(92.dp),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            row.birthRashi ?: "—",
+                            color = Color.LightGray,
+                            fontSize = 12.sp,
+                            modifier = Modifier.width(82.dp),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            "${row.house}वा भाव",
+                            color = white,
+                            fontSize = 12.sp,
+                            modifier = Modifier.width(100.dp),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            row.rashi,
+                            color = gold,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            modifier = Modifier.width(82.dp),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            signed(row.score),
+                            color = scoreColor,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.width(48.dp),
+                            textAlign = TextAlign.End
+                        )
                     }
-                    Text(row.effect, color = Color.LightGray, fontSize = 12.sp, modifier = Modifier.padding(start = 26.dp))
+                    Text(
+                        row.effect,
+                        color = Color.LightGray,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                    )
                 }
                 HorizontalDivider(color = Color(0x334F6475))
             }

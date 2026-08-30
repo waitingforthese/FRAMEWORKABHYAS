@@ -133,7 +133,11 @@ object BirthChartCalculator {
         val theta = Math.toRadians(lst)
         val phi = Math.toRadians(latitude)
         val epsilon = Math.toRadians(23.439291)
-        val tropical = normalize(Math.toDegrees(atan2(-cos(theta), sin(theta) * cos(epsilon) + tan(phi) * sin(epsilon))))
+        // Ascendant ecliptic longitude. The previous implementation used the
+        // opposite atan2 quadrant, shifting the ascendant by exactly 180°
+        // (e.g. Taurus was being reported as Scorpio). Keep the standard
+        // astronomical quadrant here before applying Lahiri ayanamsa.
+        val tropical = normalize(Math.toDegrees(atan2(cos(theta), -(sin(theta) * cos(epsilon) + tan(phi) * sin(epsilon)))))
         val years = time.year - 2000.0
         val ayanamsa = 23.85675 + (50.29 / 3600.0) * years
         return normalize(tropical - ayanamsa)

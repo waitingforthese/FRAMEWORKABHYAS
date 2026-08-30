@@ -8,6 +8,8 @@ import java.util.TimeZone
 
 data class TransitPredictionRow(
     val graha: String,
+    val birthHouse: Int?,
+    val birthRashi: String?,
     val birthPosition: String,
     val rashi: String,
     val house: Int,
@@ -270,7 +272,16 @@ object TodayPredictionCalculator {
             val rule = rules[graha]?.get(house) ?: Rule(0, "सामान्य")
             val birth = birthPositions[graha]
             val birthPosition = birth?.let { "${it.house}वा भाव — ${rashis[it.rashiIndex].marathi}" } ?: "जन्मस्थिती उपलब्ध नाही"
-            rows += TransitPredictionRow(graha.marathi, birthPosition, rashis[idx].marathi, house, rule.score, rule.effect)
+            rows += TransitPredictionRow(
+                graha.marathi,
+                birth?.house,
+                birth?.let { rashis[it.rashiIndex].marathi },
+                birthPosition,
+                rashis[idx].marathi,
+                house,
+                rule.score,
+                rule.effect
+            )
         }
 
         // Ketu is always 180° from Rahu.
@@ -282,7 +293,16 @@ object TodayPredictionCalculator {
             val pos = rows.indexOfFirst { it.graha == "राहू" } + 1
             val birth = birthPositions[Graha.KETU]
             val birthPosition = birth?.let { "${it.house}वा भाव — ${rashis[it.rashiIndex].marathi}" } ?: "जन्मस्थिती उपलब्ध नाही"
-            rows.add(pos, TransitPredictionRow("केतू", birthPosition, rashis[ketuIdx].marathi, house, rule.score, rule.effect))
+            rows.add(pos, TransitPredictionRow(
+                "केतू",
+                birth?.house,
+                birth?.let { rashis[it.rashiIndex].marathi },
+                birthPosition,
+                rashis[ketuIdx].marathi,
+                house,
+                rule.score,
+                rule.effect
+            ))
         }
 
         // Small aspect contribution to the Moon-sign first/second focus areas.

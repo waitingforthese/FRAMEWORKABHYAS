@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -71,6 +75,42 @@ private data class FrameworkPlanet(
     val prediction: String,
     val comparison: List<FrameworkDay>
 )
+
+
+@Composable
+private fun FrameworkStudyPopup(
+    title: String,
+    body: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title, style = MaterialTheme.typography.titleLarge) },
+        text = {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                tonalElevation = 0.dp
+            ) {
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 560.dp)
+                ) {
+                    item {
+                        Text(
+                            text = body,
+                            style = MaterialTheme.typography.bodyLarge,
+                            lineHeight = 24.sp
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("बंद करा") }
+        }
+    )
+}
 
 @Composable
 fun FrameworkScreen(profile: BirthProfile, onBack: () -> Unit) {
