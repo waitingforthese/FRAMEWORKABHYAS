@@ -292,23 +292,147 @@ private fun StudySectionCard(title: String, section: StudySection) {
 
 @Composable
 private fun ComparisonTable(rows: List<FrameworkDay>, birthHouse: Int, birthRashi: String) {
+    var selectedDay by remember { mutableStateOf<FrameworkDay?>(null) }
+
     Spacer(Modifier.height(8.dp))
-    Text("📊 5-दिवसीय सूक्ष्म तुलना", color = Color(0xFFFFC83D), fontWeight = FontWeight.Bold)
-    Text("जन्मग्रह: ${birthHouse}वा भाव — $birthRashi | भाव reference: जन्मकुंडली = लग्नापासून; गोचर = चंद्रापासून",
-        color = Color.LightGray, fontSize = 10.sp, modifier = Modifier.padding(vertical = 4.dp))
+
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F9FC)),
+        border = BorderStroke(1.dp, Color(0xFFD7DEE8)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Text(
+                "📊 5-दिवसीय सूक्ष्म तुलना",
+                color = Color(0xFF172033),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(5.dp))
+            Text(
+                "जन्मभाव: लग्नापासून  •  गोचरभाव: चंद्रापासून",
+                color = Color(0xFF526071),
+                fontSize = 12.sp
+            )
+            Text(
+                "जन्म: ${birthHouse}वा भाव — $birthRashi",
+                color = Color(0xFF526071),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+    }
+
+    Spacer(Modifier.height(8.dp))
+
     rows.forEachIndexed { i, r ->
-        val label = when (i) { 0 -> "-2"; 1 -> "-1"; 2 -> "आज"; 3 -> "+1"; else -> "+2" }
-        Card(Modifier.fillMaxWidth().padding(vertical = 2.dp),
-            colors = CardDefaults.cardColors(containerColor = if (i == 2) Color(0xFF1A344D) else Color(0xFF0C1D2D))) {
-            Column(Modifier.padding(9.dp)) {
-                Text("$label • ${r.date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                Text("रास: ${r.rashi} • ${r.degrees}° | भाव: ${r.house}वा | नक्षत्र: ${r.nakshatra} | चरण: ${r.pada}", color = Color.White, fontSize = 11.sp)
-                Text("राशी स्वामी: ${r.rashiLord} | नक्षत्र स्वामी: ${r.nakshatraLord} | नवांश: ${r.navamshaRashi} (${r.navamshaLord})", color = Color.LightGray, fontSize = 10.sp)
-                Text("दृष्टी: ${r.aspects} | दृष्टीतील जन्मग्रह: ${r.aspectPlanets}", color = Color.LightGray, fontSize = 10.sp)
-                Text("सक्रिय विषय: ${r.topic}", color = Color.LightGray, fontSize = 10.sp)
-                Text("बदल: ${r.change}", color = Color(0xFFFFC83D), fontSize = 10.sp)
+        val label = when (i) {
+            0 -> "मागील 2 दिवस"
+            1 -> "मागील 1 दिवस"
+            2 -> "आज"
+            3 -> "पुढील 1 दिवस"
+            else -> "पुढील 2 दिवस"
+        }
+        val isToday = i == 2
+
+        Card(
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .clickable { selectedDay = r },
+            colors = CardDefaults.cardColors(
+                containerColor = if (isToday) Color(0xFFFFF8E6) else Color(0xFFF7F9FC)
+            ),
+            border = BorderStroke(
+                1.dp,
+                if (isToday) Color(0xFFE7B52B) else Color(0xFFD7DEE8)
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(Modifier.padding(14.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            label,
+                            color = if (isToday) Color(0xFF9A6900) else Color(0xFF526071),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            r.date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                            color = Color(0xFF172033),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(
+                        "सविस्तर पहा  ›",
+                        color = Color(0xFF1769AA),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                Row(Modifier.fillMaxWidth()) {
+                    Column(Modifier.weight(1f)) {
+                        Text("गोचर रास", color = Color(0xFF6B7280), fontSize = 11.sp)
+                        Text(r.rashi, color = Color(0xFF172033), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("गोचर भाव", color = Color(0xFF6B7280), fontSize = 11.sp)
+                        Text("${r.house}वा भाव", color = Color(0xFF172033), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Column(Modifier.weight(1.2f)) {
+                        Text("नक्षत्र / चरण", color = Color(0xFF6B7280), fontSize = 11.sp)
+                        Text("${r.nakshatra} / ${r.pada}", color = Color(0xFF172033), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(Modifier.height(9.dp))
+
+                Surface(
+                    color = if (isToday) Color(0xFFFFE9A8) else Color(0xFFEAF1F8),
+                    shape = RoundedCornerShape(9.dp)
+                ) {
+                    Text(
+                        "बदल: ${r.change}",
+                        color = Color(0xFF374151),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+                    )
+                }
             }
         }
+    }
+
+    selectedDay?.let { r ->
+        val detail =
+            "📅 ${r.date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}\n\n" +
+            "🌕 गोचर रास: ${r.rashi}\n" +
+            "🏠 गोचर भाव: ${r.house}वा भाव (चंद्रापासून)\n" +
+            "° अंश: ${r.degrees}\n\n" +
+            "⭐ नक्षत्र: ${r.nakshatra}\n" +
+            "🔹 चरण: ${r.pada}\n" +
+            "⭐ नक्षत्र स्वामी: ${r.nakshatraLord}\n\n" +
+            "♈ नवांश: ${r.navamshaRashi}\n" +
+            "स्वामी: ${r.navamshaLord}\n" +
+            "राशी स्वामी: ${r.rashiLord}\n\n" +
+            "👁️ दृष्टी: ${r.aspects}\n" +
+            "दृष्टीतील जन्मग्रह: ${r.aspectPlanets}\n\n" +
+            "🎯 सक्रिय विषय: ${r.topic}\n\n" +
+            "🔄 बदल / अभ्यास: ${r.change}"
+
+        FrameworkStudyPopup(
+            "📊 ${r.date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))} — सूक्ष्म अभ्यास",
+            detail
+        ) { selectedDay = null }
     }
 }
 
