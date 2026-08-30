@@ -146,11 +146,9 @@ fun TodayPredictionScreen(
                     .padding(bottom = 5.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("ग्रह", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(92.dp))
-                Text("जन्मभाव\n(लग्नापासून)", color = gold, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(92.dp), textAlign = TextAlign.Center)
-                Text("जन्मराशी", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(82.dp), textAlign = TextAlign.Center)
-                Text("गोचर भाव\n(चंद्रापासून)", color = gold, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(100.dp), textAlign = TextAlign.Center)
-                Text("गोचर रास", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(82.dp), textAlign = TextAlign.Center)
+                Text("ग्रह", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(88.dp))
+                Text("जन्मकुंडली\n(लग्नापासून)", color = gold, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(132.dp), textAlign = TextAlign.Center)
+                Text("चंद्रापासून गोचर", color = gold, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(132.dp), textAlign = TextAlign.Center)
                 Text("Score", color = gold, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(48.dp), textAlign = TextAlign.End)
             }
 
@@ -167,38 +165,47 @@ fun TodayPredictionScreen(
                             .horizontalScroll(rememberScrollState()),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.width(92.dp)) {
+                        Column(modifier = Modifier.width(88.dp)) {
                             Text("${planetEmoji(row.graha)} ${row.graha}", color = white, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
-                        Text(
-                            row.birthHouse?.let { "${it}वा भाव" } ?: "—",
-                            color = white,
-                            fontSize = 12.sp,
-                            modifier = Modifier.width(92.dp),
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            row.birthRashi ?: "—",
-                            color = Color.LightGray,
-                            fontSize = 12.sp,
-                            modifier = Modifier.width(82.dp),
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            "${row.house}वा भाव",
-                            color = white,
-                            fontSize = 12.sp,
-                            modifier = Modifier.width(100.dp),
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            row.rashi,
-                            color = gold,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            modifier = Modifier.width(82.dp),
-                            textAlign = TextAlign.Center
-                        )
+                        Column(
+                            modifier = Modifier.width(132.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                row.birthHouse?.let { "${it}वा भाव" } ?: "—",
+                                color = white,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                row.birthRashi ?: "—",
+                                color = gold,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        Column(
+                            modifier = Modifier.width(132.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                "${row.house}वा भाव",
+                                color = white,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                row.rashi,
+                                color = gold,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                         Text(
                             signed(row.score),
                             color = scoreColor,
