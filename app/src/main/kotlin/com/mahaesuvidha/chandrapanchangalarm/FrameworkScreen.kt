@@ -575,7 +575,7 @@ private object FrameworkCalculator {
         val subject = subjects[g] ?: "संबंधित ग्रहविषय"
         val aspects = aspectHouses(g, now.house)
         val aspectBirth = aspects.flatMap { birthByHouse[it].orEmpty() }.distinct().joinToString(", ").ifBlank { "दृष्टीच्या भावात जन्मग्रह नाही" }
-        return listOf(
+        val baseSections = listOf(
             StudySection("ग्रह", listOf(
                 "हा ग्रह कोणता?" to "${g.marathi}",
                 "ग्रहाचे सर्व प्रमुख कारकत्व काय?" to subject,
@@ -639,9 +639,70 @@ private object FrameworkCalculator {
                 "लग्नकुंडली काय सांगते?" to "प्रत्यक्ष जीवनातील व्यवहार/घटना पातळीवरील भावसंबंध पाहायचा.",
                 "दशा उपलब्ध असल्यास काय विचारायचे?" to "दशा ग्रह सध्याच्या गोचर विषयाला support करतो का ते तपासायचे.",
                 "अंतिम भाकीत कधी करायचे?" to "सर्व स्वतंत्र संकेतांचा समान संदर्भात मेळ बसल्यानंतरच."
-            )),
-            conceptSection(g, now, bp, kind)
+            ))
         )
+        return baseSections.mapIndexed { index, section ->
+            if (index <= 6) {
+                val domain = domainStudyPoint(kind, index, g, bp, birthRashi, now)
+                section.copy(points = section.points + domain)
+            } else section
+        } + conceptSection(g, now, bp, kind)
+    }
+
+    private fun domainStudyPoint(
+        kind: FrameworkKind,
+        index: Int,
+        g: Graha,
+        bp: BirthChartCalculator.PlanetPosition,
+        birthRashi: Rashi,
+        now: FrameworkDay
+    ): Pair<String, String> {
+        return when (kind) {
+            FrameworkKind.MEDICAL -> medicalSectionPoint(index, g, bp, birthRashi, now)
+            FrameworkKind.BUSINESS -> businessSectionPoint(index, g, bp, birthRashi, now)
+            FrameworkKind.EDUCATION -> educationSectionPoint(index, g, bp, birthRashi, now)
+            FrameworkKind.VASTU -> vastuSectionPoint(index, g, bp, birthRashi, now)
+        }
+    }
+
+    private fun medicalSectionPoint(index: Int, g: Graha, bp: BirthChartCalculator.PlanetPosition, birthRashi: Rashi, now: FrameworkDay): Pair<String, String> = when(index) {
+        0 -> "🩺 आरोग्याच्या दृष्टीने या ग्रहाचा पूर्ण विचार काय?" to "${medicalPlanet(g)}. शरीरातील संबंधित function, vitality आणि पारंपरिक health symbolism प्रथम समजून घ्या."
+        1 -> "🩺 या गोचर भावाचा सूक्ष्म health अर्थ काय?" to "${medicalHouse(now.house)}. त्या भावाशी जोडलेले body/health themes, routine, stress, recovery आणि chronic/acute symbolism वेगळे तपासा."
+        2 -> "🩺 या गोचर राशीचा health संदर्भ काय?" to "${now.rashi} राशीशी जोडलेला पारंपरिक body-region/constitution theme, राशी स्वामी ${now.rashiLord} आणि ग्रहाचे health significations एकत्र तपासा."
+        3 -> "🩺 जन्मग्रहाची आरोग्यभूमिका काय?" to "जन्मग्रह ${bp.house}वा भाव — ${birthRashi.marathi}. जन्मस्थिती baseline tendency म्हणून वाचा; 1, 6, 8, 12 भावांशी संबंध आणि ग्रहबल स्वतंत्रपणे तपासा."
+        4 -> "🩺 दृष्टीतील भाव/ग्रहांचा health विचार काय?" to "दृष्टी ${now.aspects}. दृष्टी पडलेल्या भावाचा health अर्थ आणि तिथे असलेल्या जन्मग्रहांचे body/system significations जोडून अतिरिक्त health theme शोधा."
+        5 -> "🩺 नक्षत्राचा आरोग्याशी संबंध काय?" to "${now.nakshatra} — स्वामी ${now.nakshatraLord}. नक्षत्र स्वामीची जन्मस्थिती पाहून गोचर ग्रहाचा health theme कोणत्या दिशेने refine होतो ते तपासा."
+        else -> "🩺 चरणाचा आरोग्याशी सूक्ष्म संबंध काय?" to "चरण ${now.pada}, नवांश ${now.navamshaRashi} (${now.navamshaLord}). चरण/नवांश हा health interpretation चा सूक्ष्म modifier म्हणून वाचा; स्वतंत्र diagnosis म्हणून नाही."
+    }
+
+    private fun businessSectionPoint(index: Int, g: Graha, bp: BirthChartCalculator.PlanetPosition, birthRashi: Rashi, now: FrameworkDay): Pair<String, String> = when(index) {
+        0 -> "💼 व्यवसायाच्या दृष्टीने या ग्रहाचा पूर्ण विचार काय?" to "${businessPlanet(g)}. नेतृत्व, पैसा, sales, communication, operations, partnership किंवा risk पैकी ग्रहाचा मुख्य business role ओळखा."
+        1 -> "💼 या गोचर भावाचा सूक्ष्म business अर्थ काय?" to "${businessHouse(now.house)}. त्या भावाचा revenue, client, competition, operations, management, expenses किंवा growth शी संबंध तपासा."
+        2 -> "💼 या गोचर राशीचा business संदर्भ काय?" to "${now.rashi} + राशी स्वामी ${now.rashiLord}. व्यवसायातील decision style, market approach, communication, stability किंवा expansion वर राशीचा context लावा."
+        3 -> "💼 जन्मग्रहाची business भूमिका काय?" to "जन्मग्रह ${bp.house}वा भाव — ${birthRashi.marathi}. व्यक्तीची मूलभूत business working style, risk appetite, resources आणि professional strengths यासाठी baseline म्हणून वाचा."
+        4 -> "💼 दृष्टीतील भाव/ग्रहांचा business विचार काय?" to "दृष्टी ${now.aspects}. संबंधित भावातील business function आणि तिथल्या जन्मग्रहांचे roles जोडून secondary opportunity किंवा risk शोधा."
+        5 -> "💼 नक्षत्राचा business विचार काय?" to "${now.nakshatra} — स्वामी ${now.nakshatraLord}. नक्षत्र स्वामीची जन्मस्थिती पाहून business theme कोणत्या प्रकारे execute/manifest होतो ते refine करा."
+        else -> "💼 चरणाचा business विचार काय?" to "चरण ${now.pada}, नवांश ${now.navamshaRashi} (${now.navamshaLord}). निर्णय, execution, market style किंवा risk handling च्या सूक्ष्म अभिव्यक्तीसाठी चरण/नवांशाचा modifier म्हणून वापर करा."
+    }
+
+    private fun educationSectionPoint(index: Int, g: Graha, bp: BirthChartCalculator.PlanetPosition, birthRashi: Rashi, now: FrameworkDay): Pair<String, String> = when(index) {
+        0 -> "📚 शिक्षणाच्या दृष्टीने या ग्रहाचा पूर्ण विचार काय?" to "${educationPlanet(g)}. learning, memory, concentration, communication, logic, creativity किंवा higher study पैकी ग्रहाची मुख्य भूमिका ओळखा."
+        1 -> "📚 या गोचर भावाचा सूक्ष्म education अर्थ काय?" to "${educationHouse(now.house)}. अभ्यासाचे वातावरण, learning process, examination, practice, competition किंवा higher education यापैकी सक्रिय क्षेत्र शोधा."
+        2 -> "📚 या गोचर राशीचा education संदर्भ काय?" to "${now.rashi} + राशी स्वामी ${now.rashiLord}. शिकण्याची शैली, expression, discipline, creativity, analytical approach किंवा subject preference यावर राशीचा context लावा."
+        3 -> "📚 जन्मग्रहाची education भूमिका काय?" to "जन्मग्रह ${bp.house}वा भाव — ${birthRashi.marathi}. learning pattern, basic education, intelligence-related themes आणि व्यक्तीची स्थिर अभ्यासभूमिका baseline म्हणून तपासा."
+        4 -> "📚 दृष्टीतील भाव/ग्रहांचा education विचार काय?" to "दृष्टी ${now.aspects}. संबंधित भावातील learning theme आणि दृष्टीतील जन्मग्रहाचे learning role जोडून concentration, examination, communication किंवा higher-study चे secondary संकेत शोधा."
+        5 -> "📚 नक्षत्राचा education विचार काय?" to "${now.nakshatra} — स्वामी ${now.nakshatraLord}. नक्षत्र स्वामीची जन्मस्थिती पाहून learning motivation, subject orientation किंवा study pattern कसा refine होतो ते तपासा."
+        else -> "📚 चरणाचा education विचार काय?" to "चरण ${now.pada}, नवांश ${now.navamshaRashi} (${now.navamshaLord}). concentration, expression, practice, specialisation किंवा subject-depth च्या सूक्ष्म फरकासाठी चरण/नवांश वापरा."
+    }
+
+    private fun vastuSectionPoint(index: Int, g: Graha, bp: BirthChartCalculator.PlanetPosition, birthRashi: Rashi, now: FrameworkDay): Pair<String, String> = when(index) {
+        0 -> "🏠 वास्तूच्या दृष्टीने या ग्रहाचा पूर्ण विचार काय?" to "${vastuPlanet(g)}. दिशा, प्रकाश, अग्नी, जल, भार, movement, comfort किंवा spiritual/research space यापैकी ग्रहाचा symbolism ओळखा."
+        1 -> "🏠 या गोचर भावाचा सूक्ष्म वास्तु संदर्भ काय?" to "${vastuHouse(now.house)}. घरातील/office मधील संबंधित space-use, प्रवेश, काम, झोप, storage किंवा central-use theme शी तुलना करा."
+        2 -> "🏠 या गोचर राशीचा वास्तु संदर्भ काय?" to "${now.rashi} + राशी स्वामी ${now.rashiLord}. राशीच्या तत्त्व/स्वभावाशी दिशा, पंचमहाभूत आणि space usage यांची तुलनात्मक सांगड घाला."
+        3 -> "🏠 जन्मग्रहाची वास्तु भूमिका काय?" to "जन्मग्रह ${bp.house}वा भाव — ${birthRashi.marathi}. स्थिर जन्मसंकेतांचा space-use symbolism शी संबंध तपासा; हा daily transit पेक्षा वेगळा layer आहे."
+        4 -> "🏠 दृष्टीतील भाव/ग्रहांचा वास्तु विचार काय?" to "दृष्टी ${now.aspects}. संबंधित भावांचे space themes आणि तिथल्या जन्मग्रहांचे symbolism जोडून कोणत्या जागेकडे लक्ष द्यायचे ते शोधा."
+        5 -> "🏠 नक्षत्राचा वास्तु विचार काय?" to "${now.nakshatra} — स्वामी ${now.nakshatraLord}. नक्षत्र स्वामीच्या symbolism वरून space-use किंवा direction-related comparison अधिक सूक्ष्म करा."
+        else -> "🏠 चरणाचा वास्तु विचार काय?" to "चरण ${now.pada}, नवांश ${now.navamshaRashi} (${now.navamshaLord}). direction/element/space-use interpretation मधील सूक्ष्म modifier म्हणून वापरा; स्थिर वास्तु नियमांना पर्याय म्हणून नाही."
     }
 
     private fun conceptSection(g: Graha, now: FrameworkDay, bp: BirthChartCalculator.PlanetPosition, kind: FrameworkKind): StudySection {
