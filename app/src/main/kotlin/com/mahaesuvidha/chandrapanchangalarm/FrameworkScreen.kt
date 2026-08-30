@@ -30,6 +30,13 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.floor
 
+private val FrameworkBg = Color(0xFFF4F7FA)
+private val FrameworkCard = Color(0xFFFFFFFF)
+private val FrameworkText = Color(0xFF18212B)
+private val FrameworkSecondary = Color(0xFF52606D)
+private val FrameworkAccent = Color(0xFF9A6700)
+private val FrameworkBorder = Color(0xFFD9E1E8)
+
 private enum class FrameworkKind(val title: String, val icon: String, val subtitle: String) {
     MEDICAL("Medical Astrology", "🩺", "आरोग्याशी संबंधित पारंपरिक ज्योतिषीय संकेतांचा अभ्यास"),
     BUSINESS("Business Astrology", "💼", "व्यवसाय, पैसा, भागीदारी व लाभाचा अभ्यास"),
@@ -85,7 +92,7 @@ private fun FrameworkStudyPopup(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFFF8F9FA),
+        containerColor = Color.White,
         titleContentColor = Color(0xFF111827),
         textContentColor = Color(0xFF1F2937),
         title = {
@@ -105,7 +112,7 @@ private fun FrameworkStudyPopup(
                 Text(
                     body,
                     style = MaterialTheme.typography.bodyLarge,
-                    lineHeight = 25.sp
+                    lineHeight = 27.sp
                 )
             }
         },
@@ -126,32 +133,32 @@ fun FrameworkScreen(profile: BirthProfile, onBack: () -> Unit) {
 @Composable
 private fun FrameworkHome(onBack: () -> Unit, onSelect: (FrameworkKind) -> Unit) {
     Column(
-        Modifier.fillMaxSize().background(Color(0xFF07111F)).statusBarsPadding().navigationBarsPadding()
+        Modifier.fillMaxSize().background(FrameworkBg).statusBarsPadding().navigationBarsPadding()
             .verticalScroll(rememberScrollState()).padding(12.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("← मागे", color = Color.White) }
-            Text("🧠 Framework", color = Color(0xFFFFC83D), fontSize = 22.sp, fontWeight = FontWeight.Bold,
+            TextButton(onClick = onBack) { Text("← मागे", color = FrameworkText, fontSize = 16.sp) }
+            Text("🧠 Framework", color = FrameworkAccent, fontSize = 23.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             Spacer(Modifier.width(55.dp))
         }
         Spacer(Modifier.height(8.dp))
-        Text("ग्रहस्थिती → प्रश्न → कारण → परिणाम → तुलना → अभ्यास", color = Color.LightGray,
+        Text("ग्रहस्थिती → प्रश्न → कारण → परिणाम → तुलना → अभ्यास", color = FrameworkSecondary,
             fontSize = 13.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         Spacer(Modifier.height(12.dp))
         FrameworkKind.entries.forEach { kind ->
             Card(
                 Modifier.fillMaxWidth().padding(vertical = 5.dp).clickable { onSelect(kind) },
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF10253A)),
-                border = BorderStroke(1.dp, Color(0xFFFFC83D).copy(alpha = .35f))
+                colors = CardDefaults.cardColors(containerColor = FrameworkCard),
+                border = BorderStroke(1.dp, FrameworkBorder)
             ) {
                 Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(kind.icon, fontSize = 30.sp)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(kind.title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Text(kind.subtitle, color = Color.LightGray, fontSize = 11.sp)
+                        Text(kind.title, color = FrameworkText, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                        Text(kind.subtitle, color = FrameworkSecondary, fontSize = 12.sp)
                     }
                     Text("›", color = Color(0xFFFFC83D), fontSize = 28.sp)
                 }
@@ -179,25 +186,25 @@ private fun FrameworkDetail(profile: BirthProfile, kind: FrameworkKind, onBack: 
         if (coords == null) emptyList() else FrameworkCalculator.calculate(profile, coords!!.first, coords!!.second, kind)
     }
     Column(
-        Modifier.fillMaxSize().background(Color(0xFF07111F)).statusBarsPadding().navigationBarsPadding()
+        Modifier.fillMaxSize().background(FrameworkBg).statusBarsPadding().navigationBarsPadding()
             .verticalScroll(rememberScrollState()).padding(12.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("← मागे", color = Color.White) }
-            Text("${kind.icon} ${kind.title}", color = Color(0xFFFFC83D), fontSize = 19.sp, fontWeight = FontWeight.Bold,
+            TextButton(onClick = onBack) { Text("← मागे", color = FrameworkText, fontSize = 16.sp) }
+            Text("${kind.icon} ${kind.title}", color = FrameworkAccent, fontSize = 21.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             Spacer(Modifier.width(55.dp))
         }
         Spacer(Modifier.height(6.dp))
         Text("जन्मकुंडलीतील भाव = जन्मलग्नापासून  •  गोचर भाव = जन्म चंद्रराशीपासून",
-            color = Color.LightGray, fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            color = FrameworkSecondary, fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(5.dp))
         NoteCard("अभ्यासाची पद्धत",
             "प्रत्येक ग्रहासाठी आधी प्रश्न वाचायचे, नंतर त्या प्रश्नाचे सध्याचे उत्तर पाहायचे. शेवटी सर्व संकेत जोडून संयुक्त Logic आणि भाकीत वाचायचे.")
         if (coords == null) Text("जन्मठिकाणाचे coordinates शोधत आहे...", color = Color.Gray, modifier = Modifier.padding(12.dp))
         if (kind == FrameworkKind.VASTU) VastuInfo()
-        data.forEach { planet -> PlanetStudyCard(planet) }
-        if (data.isEmpty() && coords != null) Text("विश्लेषणासाठी जन्ममाहिती तपासा.", color = Color.LightGray, modifier = Modifier.padding(16.dp))
+        data.forEach { planet -> PlanetStudyCard(planet, kind) }
+        if (data.isEmpty() && coords != null) Text("विश्लेषणासाठी जन्ममाहिती तपासा.", color = FrameworkSecondary, modifier = Modifier.padding(16.dp))
     }
 }
 
@@ -206,19 +213,21 @@ private fun frameworkPlanetEmoji(name: String): String = when (name) {
 }
 
 @Composable
-private fun PlanetStudyCard(p: FrameworkPlanet) {
+private fun PlanetStudyCard(p: FrameworkPlanet, kind: FrameworkKind) {
     var open by remember { mutableStateOf(false) }
     var comparison by remember { mutableStateOf(false) }
-    val gold = Color(0xFFFFC83D)
-    Card(Modifier.fillMaxWidth().padding(vertical = 5.dp), shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF10253A))) {
+    val gold = FrameworkAccent
+    Card(Modifier.fillMaxWidth().padding(vertical = 6.dp), shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = FrameworkCard),
+        border = BorderStroke(1.dp, FrameworkBorder)) {
         Column(Modifier.padding(14.dp)) {
             Row(Modifier.fillMaxWidth().clickable { open = !open }, verticalAlignment = Alignment.CenterVertically) {
-                Text("${frameworkPlanetEmoji(p.graha.marathi)} ${p.graha.marathi}", color = Color.White, fontSize = 17.sp,
+                Text("${frameworkPlanetEmoji(p.graha.marathi)} ${p.graha.marathi}", color = FrameworkText, fontSize = 20.sp,
                     fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Text(if (open) "⌃" else "⌄", color = gold, fontSize = 22.sp)
+                Text(if (open) "⌃" else "⌄", color = gold, fontSize = 24.sp)
             }
-            Text("आज: ${p.transit.house}वा भाव • ${p.transit.rashi} • ${p.transit.nakshatra} • चरण ${p.transit.pada}", color = gold, fontSize = 12.sp)
+            Text("आज: ${p.transit.house}वा भाव • ${p.transit.rashi} • ${p.transit.nakshatra} • चरण ${p.transit.pada}", color = gold, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            ConceptPreview(p)
             if (open) {
                 Spacer(Modifier.height(8.dp))
                 StudySectionCard("① गोचर ग्रह कोणता? — ग्रहाचा पूर्ण विचार", p.sections[0])
@@ -254,6 +263,26 @@ private fun PlanetStudyCard(p: FrameworkPlanet) {
 }
 
 @Composable
+private fun ConceptPreview(p: FrameworkPlanet) {
+    val section = p.sections.getOrNull(8) ?: return
+    val first = section.points.getOrNull(0)?.second.orEmpty()
+    val second = section.points.getOrNull(1)?.second.orEmpty()
+    Card(
+        Modifier.fillMaxWidth().padding(top = 9.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F7F3)),
+        border = BorderStroke(1.dp, Color(0xFFD5E5DA)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(Modifier.padding(11.dp)) {
+            Text("📌 ${section.title}", color = Color(0xFF23613A), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            if (first.isNotBlank()) Text("• मुख्य विषय: $first", color = FrameworkText, fontSize = 13.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 4.dp))
+            if (second.isNotBlank()) Text("• सध्याचा संदर्भ: $second", color = FrameworkText, fontSize = 13.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 3.dp))
+            Text("टॅप करून ${section.title} चा संपूर्ण अभ्यास वाचा", color = Color(0xFF23613A), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 5.dp))
+        }
+    }
+}
+
+@Composable
 private fun StudySectionCard(title: String, section: StudySection) {
     var popup by remember { mutableStateOf(false) }
     Card(
@@ -261,8 +290,8 @@ private fun StudySectionCard(title: String, section: StudySection) {
             .fillMaxWidth()
             .padding(vertical = 3.dp)
             .clickable { popup = true },
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0B2038)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = .08f))
+        colors = CardDefaults.cardColors(containerColor = FrameworkCard),
+        border = BorderStroke(1.dp, FrameworkBorder)
     ) {
         Row(
             Modifier
@@ -271,15 +300,15 @@ private fun StudySectionCard(title: String, section: StudySection) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text(title, color = Color(0xFFFFC83D), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(title, color = FrameworkAccent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 Text(
                     "टॅप करा → मोठ्या अक्षरात संपूर्ण अभ्यास वाचा",
-                    color = Color.LightGray,
-                    fontSize = 10.sp,
+                    color = FrameworkSecondary,
+                    fontSize = 11.sp,
                     modifier = Modifier.padding(top = 3.dp)
                 )
             }
-            Text("›", color = Color(0xFFFFC83D), fontSize = 25.sp)
+            Text("›", color = FrameworkAccent, fontSize = 25.sp)
         }
     }
     if (popup) {
@@ -438,9 +467,9 @@ private fun ComparisonTable(rows: List<FrameworkDay>, birthHouse: Int, birthRash
 
 @Composable
 private fun VastuInfo() {
-    Card(Modifier.fillMaxWidth().padding(bottom = 8.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF10253A))) {
+    Card(Modifier.fillMaxWidth().padding(bottom = 8.dp), colors = CardDefaults.cardColors(containerColor = FrameworkCard), border = BorderStroke(1.dp, FrameworkBorder)) {
         Column(Modifier.padding(14.dp)) {
-            Text("🏠 वास्तु अभ्यास — प्रश्नावली", color = Color(0xFFFFC83D), fontWeight = FontWeight.Bold)
+            Text("🏠 वास्तु अभ्यास — प्रश्नावली", color = FrameworkAccent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             listOf(
                 "कोणती दिशा? → उत्तर, दक्षिण, पूर्व, पश्चिम, ईशान्य, आग्नेय, नैऋत्य, वायव्य.",
                 "त्या दिशेचा पारंपरिक वास्तु अर्थ काय?",
@@ -450,17 +479,17 @@ private fun VastuInfo() {
                 "ब्रह्मस्थान मोकळे/संतुलित आहे का?",
                 "कुंडलीतील ग्रहसंकेताशी वास्तु घटकाचा तुलनात्मक संबंध काय?",
                 "स्थिर वास्तु नियम आणि दैनिक गोचर वेगळे कसे ठेवायचे?"
-            ).forEach { Text("❓ $it", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(top = 5.dp)) }
+            ).forEach { Text("❓ $it", color = FrameworkText, fontSize = 13.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 5.dp)) }
         }
     }
 }
 
 @Composable
 private fun NoteCard(title: String, text: String) {
-    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF0C1D2D))) {
+    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column(Modifier.padding(11.dp)) {
             Text(title, color = Color(0xFFFFC83D), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            Text(text, color = Color.LightGray, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+            Text(text, color = FrameworkSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }
