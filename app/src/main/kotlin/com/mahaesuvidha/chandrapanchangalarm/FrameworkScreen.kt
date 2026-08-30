@@ -230,7 +230,7 @@ private fun PlanetStudyCard(p: FrameworkPlanet) {
                 StudySectionCard("⑦ चरण — नवांशासह सूक्ष्म विचार", p.sections[6])
                 StudySectionCard("⑧ जोडणी — जन्म + गोचर + इतर संकेत", p.sections[7])
                 if (p.sections.size > 8) {
-                    StudySectionCard("⑨ ${conceptTitle(p.sections[8].title)} — क्षेत्रीय Concept", p.sections[8])
+                    StudySectionCard("⑨ ${p.sections[8].title} — क्षेत्रीय Concept", p.sections[8])
                 }
                 Spacer(Modifier.height(6.dp))
                 var logicPopup by remember { mutableStateOf(false) }
@@ -489,14 +489,6 @@ private object FrameworkCalculator {
             )),
             conceptSection(g, now, bp, kind)
         )
-    }
-
-    private fun conceptTitle(title: String): String = when {
-        title.contains("Medical") || title.contains("आरोग्य") -> "Medical Concept"
-        title.contains("Business") || title.contains("व्यवसाय") -> "Business Concept"
-        title.contains("Educational") || title.contains("शिक्षण") -> "Education Concept"
-        title.contains("Vastu") || title.contains("वास्तु") -> "Vastu Concept"
-        else -> title
     }
 
     private fun conceptSection(g: Graha, now: FrameworkDay, bp: BirthChartCalculator.PlanetPosition, kind: FrameworkKind): StudySection {
